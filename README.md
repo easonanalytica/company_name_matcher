@@ -1,4 +1,8 @@
-#  🤼‍♂️ Company Name Matcher
+<p align="center">
+  <img src="assets/logo.png" alt="Company Name Matcher Logo" width="200"/>
+</p>
+
+# Company Name Matcher
 
 Company Name Matcher is a library for efficient and accurate matching of company names using advanced embedding techniques. It leverages a fine-tuned sentence transformer model to generate embeddings specifically tailored for company names.
 
@@ -7,7 +11,7 @@ Company Name Matcher is a library for efficient and accurate matching of company
 - Efficient company name comparison using embeddings and cosine similarity
 - Scalable vector search for large datasets
 - Context-aware matching that understands company name nuances
-- Significantly faster than traditional string matching algorithms for large datasets
+- More scalable than traditional string matching algorithms for large datasets.
 
 ## Advantages over Traditional Methods
 
@@ -31,7 +35,7 @@ While traditional string matching algorithms like those used in RapidFuzz are fa
 
 ## Performance Comparison
 
-Here's a comparison of Company Name Matcher with RapidFuzz on a test dataset:
+Here's a sample comparison of Company Name Matcher with RapidFuzz on the test dataset:
 
 | Metric        | Company Name Matcher | RapidFuzz |
 |---------------|----------------------|-----------|
@@ -47,10 +51,11 @@ While RapidFuzz is faster, Company Name Matcher provides better accuracy and sca
 
 ```
 !git clone https://github.com/easonanalytica/company_name_matcher.git
+cd company_name_matcher
 pip install .
 ```
 
-Download our fine-tuned model [here](https://drive.google.com/file/d/13L-yKsb0TYMb3UF68-XOvO8Lf-efTRiT/view?usp=sharing) on Google Drive.
+Download our fine-tuned model [here](https://drive.google.com/file/d/11LaI2-1Ahqqfo73CKOPNgRSCJe_y9nnG/view?usp=sharing) on Google Drive.
 
 ## Usage
 
@@ -65,19 +70,43 @@ matcher = CompanyNameMatcher("models/fine_tuned_model")
 similarity = matcher.compare_companies("Apple Inc", "Apple Incorporated")
 print(f"Similarity: {similarity}")
 
-# Find matches in a list of companies
+# Basic matching in a list
 company_list = ["Microsoft Corporation", "Apple Inc", "Google LLC", "Apple Computer Inc"]
-matches = matcher.find_matches("Apple", company_list, threshold=0.8)
-print("Matches:", matches)
+matches = matcher.find_matches("Apple", company_list, threshold=0.7)
+print("Basic matches:", matches)
+
+# Approximate matching using k-means (recommended for large datasets)
+company_list = ["Microsoft Corporation", "Apple Inc", "Google LLC", "Apple Computer Inc", ...]
+# First, build the index (only needed once)
+matcher.build_index(company_list, n_clusters=100)  # adjust n_clusters based on your dataset size
+
+# Then find matches using approximate search
+matches = matcher.find_matches(
+    "Apple", 
+    company_list, 
+    threshold=0.7, 
+    k=5,  # number of matches to return
+    use_approx=True  # enable approximate matching
+)
+print("Approximate matches:", matches)
 
 # Get embedding for a single company
 embedding = matcher.get_embedding("Apple Inc")
-print(f"Embedding: {embedding}")
+print(f"Embedding shape: {embedding.shape}")
 
 # Get embeddings for multiple companies
 embeddings = matcher.get_embeddings(["Microsoft", "Google"])
-print(f"Embeddings: {embeddings}")
+print(f"Embeddings shape: {embeddings.shape}")
 ```
+
+The `find_matches` method supports two modes:
+- **Exact matching**: Default mode, suitable for small to medium datasets
+- **Approximate matching**: Enabled with `use_approx=True`, recommended for large datasets (>10,000 companies)
+
+When using approximate matching:
+1. First call `build_index()` to create the k-means clusters
+2. Then use `find_matches()` with `use_approx=True`
+3. Adjust `n_clusters` based on your dataset size and speed/accuracy requirements
 
 ## License
 
