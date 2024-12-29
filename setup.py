@@ -12,7 +12,7 @@ setup(
     name="company_name_matcher",
     version="0.1.0",
     author="Eason Suen",
-    author_email="easonssuen@gmail.com",
+    author_email=None,
     description="A library for matching and comparing company names using a fine-tuned sentence transformer model",
     long_description=long_description,
     long_description_content_type="text/markdown",

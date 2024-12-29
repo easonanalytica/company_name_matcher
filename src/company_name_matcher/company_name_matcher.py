@@ -1,4 +1,3 @@
-import warnings
 import logging
 from sentence_transformers import SentenceTransformer
 from typing import List, Tuple
@@ -10,14 +9,12 @@ logger = logging.getLogger(__name__)
 
 class CompanyNameMatcher:
     def __init__(
-        self, 
+        self,
         model_path: str = "models/fine_tuned_model",
         preprocess_fn: callable = None
     ):
-        # suppress huggingface logging
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            self.embedder = SentenceTransformer(model_path)
+
+        self.embedder = SentenceTransformer(model_path)
         self.vector_store = None
         # Use custom preprocessing function if provided, otherwise use default
         self.preprocess_fn = preprocess_fn if preprocess_fn is not None else self._default_preprocess
@@ -49,7 +46,7 @@ class CompanyNameMatcher:
     def build_index(self, company_list: List[str], n_clusters: int = 100, save_dir: str = None):
         """
         Build search index for the company list
-        
+
         Args:
             company_list: List of company names to index
             n_clusters: Number of clusters for KMeans
@@ -58,16 +55,16 @@ class CompanyNameMatcher:
         """
         embeddings = self.get_embeddings(company_list)
         self.vector_store = VectorStore(embeddings, company_list)
-        
+
         if save_dir and not os.path.isdir(save_dir):
             os.makedirs(save_dir, exist_ok=True)
-        
+
         self.vector_store.build_index(n_clusters, save_dir)
 
     def load_index(self, load_dir: str):
         """
         Load a previously saved search index
-        
+
         Args:
             load_dir: Directory path containing the index files
                      ('embeddings.h5' and 'kmeans_model.joblib')
@@ -76,7 +73,7 @@ class CompanyNameMatcher:
         self.vector_store.load_index(load_dir)
 
     def find_matches(
-        self, 
+        self,
         target_company: str,
         threshold: float = 0.9,
         k: int = 5,
@@ -84,45 +81,45 @@ class CompanyNameMatcher:
     ) -> List[Tuple[str, float]]:
         """
         Find matches for a target company using the built/loaded index.
-        
+
         Args:
             target_company: Company name to match
             threshold: Minimum similarity score (0-1)
             k: Number of top matches to return
             use_approx: Whether to use approximate k-means search
-        
+
         Raises:
             ValueError: If no index has been built or loaded
         """
         if self.vector_store is None:
             raise ValueError("No index available. Call build_index or load_index first.")
-        
+
         target_embedding = self.get_embedding(target_company)
-        
+
         if use_approx:
             # Get more candidates than k since we'll filter by threshold
             matches = self.vector_store.search(target_embedding, k=max(k * 2, 20), use_approx=True)
             # Filter by threshold and take top k
-            matches = [(company, similarity) 
-                      for company, similarity in matches 
+            matches = [(company, similarity)
+                      for company, similarity in matches
                       if similarity >= threshold]
             matches = matches[:k]
         else:
             # Use exact search with the stored embeddings
             similarities = self._cosine_similarity(target_embedding.reshape(1, -1), self.vector_store.embeddings)
             similarities = similarities.flatten()
-            
+
             # Get all matches above threshold
-            matches = [(company, similarity) 
-                      for company, similarity in zip(self.vector_store.items, similarities) 
+            matches = [(company, similarity)
+                      for company, similarity in zip(self.vector_store.items, similarities)
                       if similarity >= threshold]
             matches = sorted(matches, key=lambda x: x[1], reverse=True)[:k]
-            
+
         return matches
 
     @staticmethod
     def _cosine_similarity(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-        """calculate cosine similarity between two vectors or between a vector and a matrix."""
+        """Calculate cosine similarity between two vectors or between a vector and a matrix."""
         logger.debug(f"Input shapes: a={a.shape}, b={b.shape}")
 
         if a.ndim == 1:
@@ -149,16 +146,16 @@ class CompanyNameMatcher:
     def expand_index(self, new_company_list: List[str], save_dir: str = None):
         """
         Add new companies to the existing index
-        
+
         Args:
             new_company_list: List of new company names to add to the index
             save_dir: Optional directory path to save the updated index
-            
+
         Raises:
             ValueError: If no index has been built or loaded
         """
         if self.vector_store is None:
             raise ValueError("No index available. Call build_index or load_index first.")
-            
+
         new_embeddings = self.get_embeddings(new_company_list)
         self.vector_store.add_items(new_embeddings, new_company_list, save_dir)
