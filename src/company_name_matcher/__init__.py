@@ -1,8 +1,3 @@
-from .environment import setup_environment
-
-# Set up environment variables when the package is imported
-setup_environment()
-
 # Import your main classes
 from .company_name_matcher import CompanyNameMatcher
 from .vector_store import VectorStore
