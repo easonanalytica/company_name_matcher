@@ -1,8 +1,15 @@
 <p align="center">
   <img src="assets/logo.png" alt="Company Name Matcher Logo" width="200"/>
+  <h1>Company Name Matcher</h1>
 </p>
 
-# Company Name Matcher
+<p align="center">
+  <a href="https://badge.fury.io/py/company_name_matcher"><img src="https://badge.fury.io/py/company_name_matcher.svg" alt="PyPI version"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.7+-blue.svg" alt="Python 3.9+"></a>
+  <a href="https://github.com/easonanalytica/company_name_matcher/stargazers"><img src="https://img.shields.io/github/stars/easonanalytica/company_name_matcher.svg" alt="GitHub stars"></a>
+</p>
+
 
 Company Name Matcher is a library for efficient matching of company names using advanced embedding techniques. It leverages a language model to generate embeddings specifically tailored for company names.
 
@@ -25,6 +32,8 @@ cd company_name_matcher
 pip install .
 ```
 
+* An optional installation with "pip install . --no-binary scikit-learn" is recommended to fix an OpenMP compatibility issue with sklearn.
+
 ## 📣 Features
 
 - **K-Means approximated matching**: Use vector search with either exact or approximate matching
@@ -44,9 +53,9 @@ matcher = CompanyNameMatcher("sentence-transformers/paraphrase-multilingual-Mini
 # Or initialize with custom preprocessing
 def preprocess_name(name):
     return name.lower().strip()
-    
+
 matcher = CompanyNameMatcher(
-    "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2", 
+    "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
     preprocess_fn=preprocess_name
 )
 
@@ -65,7 +74,7 @@ companies_to_match = ["Microsoft Corporation", "Apple Inc", "Google LLC", ...]
 
 # Build and save index (only needed once)
 matcher.build_index(
-    companies_to_match, 
+    companies_to_match,
     n_clusters=20,  # Adjust based on dataset size
     save_dir="index_files"  # Optional: save index to disk
 )
