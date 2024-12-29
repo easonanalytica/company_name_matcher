@@ -1,12 +1,11 @@
 <p align="center">
   <img src="assets/logo.png" alt="Company Name Matcher Logo" width="200"/>
-  <h1>Company Name Matcher</h1>
 </p>
-
+<h1 align="center">Company Name Matcher</h1>
 <p align="center">
   <a href="https://badge.fury.io/py/company_name_matcher"><img src="https://badge.fury.io/py/company_name_matcher.svg" alt="PyPI version"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
-  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.7+-blue.svg" alt="Python 3.9+"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.9+-blue.svg" alt="Python 3.9+"></a>
   <a href="https://github.com/easonanalytica/company_name_matcher/stargazers"><img src="https://img.shields.io/github/stars/easonanalytica/company_name_matcher.svg" alt="GitHub stars"></a>
 </p>
 
@@ -32,7 +31,7 @@ cd company_name_matcher
 pip install .
 ```
 
-* An optional installation with "pip install . --no-binary scikit-learn" is recommended to fix an OpenMP compatibility issue with sklearn.
+An optional installation with "pip install . --no-binary scikit-learn" is recommended to fix an OpenMP compatibility issue with sklearn.
 
 ## 📣 Features
 
