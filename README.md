@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="Company Name Matcher Logo" width="200"/>
+  <img src="https://github.com/easonanalytica/company_name_matcher/blob/dev/assets/logo.png?raw=true" alt="Company Name Matcher Logo" width="200"/>
 </p>
 <h1 align="center">Company Name Matcher</h1>
 <p align="center">
@@ -26,9 +26,7 @@ While traditional string matching algorithms like those used in RapidFuzz are fa
 ## 🚀 Installation
 
 ```
-!git clone https://github.com/easonanalytica/company_name_matcher.git
-cd company_name_matcher
-pip install .
+pip install company-name-matcher
 ```
 
 An optional installation with "pip install . --no-binary scikit-learn" is recommended to fix an OpenMP compatibility issue with sklearn.
