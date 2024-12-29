@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "company_name_matcher"
+version = "0.1.0"
+authors = [
+    {name = "Eason Suen"}
+]
+description = "A library for matching and comparing company names using a fine-tuned sentence transformer model"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "sentence-transformers>=3.3.1",
+    "numpy<2.0.0",
+    "scikit-learn>=1.6.0",
+    "h5py>=3.8.0",
+    "pandas>=2.0.0",
+    "pytest>=8.0.0",
+]
+classifiers = [
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.9",
+]
+
+[project.urls]
+Homepage = "https://github.com/easonanalytica/company_name_matcher"
+"Bug Tracker" = "https://github.com/easonanalytica/company_name_matcher/issues"
+"Author" = "https://github.com/easonanalytica"
+
+[tool.setuptools.packages.find]
+where = ["src"]
