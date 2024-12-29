@@ -1,4 +1,4 @@
 sentence-transformers>=3.3.1
 numpy<2.0.0
-scikit-learn>=1.6.0 --no-binary scikit-learn
+scikit-learn>=1.6.0
 h5py>=3.8.0
