@@ -34,7 +34,7 @@ def default_matcher():
 def finetuned_matcher():
     """Create a fine-tuned CompanyNameMatcher."""
     def preprocess_name(name):
-        return "%" + name.strip() + "%"  # pretrained tokens
+        return "#" + name.strip() + "#"  # pretrained tokens
     
     return CompanyNameMatcher(
         "models/multilingual-MiniLM-small-v1",

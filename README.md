@@ -128,7 +128,7 @@ While you can load your own model into CompanyNameMatcher, we provide our comple
 
 1. **Fine-tuned Embeddings**: We use a lightweight multilingual sentence transformer model (sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2) fine-tuned specifically for company names. This model was trained using contrastive learning, minimizing the cosine distance between similar company names.
 
-2. **Special Tokens**: During the training process, we added special tokens to the training data. These tokens guide the model's understanding, explicitly informing it that it's embedding company names. This results in more accurate and context-aware embeddings.
+2. **Special Tokens**: During the training process, we added special tokens **#** to the training data. These tokens guide the model's understanding, explicitly informing it that it's embedding company names. This results in more accurate and context-aware embeddings.
 
 3. **Cosine Similarity**: We use cosine similarity to compare the resulting embeddings, providing a robust measure of similarity that works well with high-dimensional data.
 
@@ -138,10 +138,10 @@ Here's a comparison of different matching approaches on our test dataset:
 
 | Metric        | Fine-tuned Matcher | Default Matcher | RapidFuzz |
 |---------------|--------------------|--------------------|-----------|
-| Accuracy      | 0.900              | 0.780              | 0.690     |
-| Precision     | 0.885              | 0.719              | 0.807     |
-| Recall        | 0.920              | 0.920              | 0.500     |
-| F1 Score      | 0.902              | 0.807              | 0.617     |
+| Accuracy      | 0.910              | 0.780              | 0.690     |
+| Precision     | 0.918              | 0.719              | 0.807     |
+| Recall        | 0.900              | 0.920              | 0.500     |
+| F1 Score      | 0.909              | 0.807              | 0.617     |
 
 While RapidFuzz is faster, Company Name Matcher provides better accuracy and scalability (as the lists for matching increase in size, we can use k-means approximated matching).
 
