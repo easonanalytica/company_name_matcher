@@ -11,7 +11,7 @@ def default_matcher():
         return re.sub(r'[^a-zA-Z0-9\s]', '', name.lower()).strip()
 
     return CompanyNameMatcher(
-        "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+        "paraphrase-multilingual-MiniLM-L12-v2",
         preprocess_fn=preprocess_name
     )
 
