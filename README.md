@@ -29,7 +29,7 @@ While traditional string matching algorithms like those used in RapidFuzz are fa
 pip install company-name-matcher
 ```
 
-An optional installation with "pip install . --no-binary scikit-learn" is recommended to fix an OpenMP compatibility issue with sklearn.
+An optional installation with `pip install . --no-binary scikit-learn` is recommended to fix an OpenMP compatibility issue with sklearn.
 
 ## 📣 Features
 
@@ -45,14 +45,14 @@ An optional installation with "pip install . --no-binary scikit-learn" is recomm
 from company_name_matcher import CompanyNameMatcher
 
 # Initialize with default model
-matcher = CompanyNameMatcher("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
+matcher = CompanyNameMatcher("paraphrase-multilingual-MiniLM-L12-v2")
 
 # Or initialize with custom preprocessing
 def preprocess_name(name):
     return name.lower().strip()
 
 matcher = CompanyNameMatcher(
-    "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+    "paraphrase-multilingual-MiniLM-L12-v2",
     preprocess_fn=preprocess_name
 )
 
@@ -124,7 +124,7 @@ print(f"Embeddings shape: {embeddings.shape}")
 
 ## 🤖 (Complementary) fine-tuned model
 
-While you can load your own model into CompanyNameMatcher, we provide our complementary fine-tuned model avaliable for download [here](https://drive.google.com/file/d/11LaI2-1Ahqqfo73CKOPNgRSCJe_y9nnG/view?usp=sharing) on Google Drive. See demo [here](demo.ipynb).
+While you can load your own model into CompanyNameMatcher, we provide our complementary fine-tuned model avaliable for download [here](https://drive.google.com/file/d/11LaI2-1Ahqqfo73CKOPNgRSCJe_y9nnG/view?usp=sharing) on Google Drive. See demo [here](https://github.com/easonanalytica/company_name_matcher/blob/main/demo.ipynb).
 
 1. **Fine-tuned Embeddings**: We use a lightweight multilingual sentence transformer model (sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2) fine-tuned specifically for company names. This model was trained using contrastive learning, minimizing the cosine distance between similar company names.
 

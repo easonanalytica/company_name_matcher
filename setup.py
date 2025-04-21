@@ -10,7 +10,7 @@ with open("requirements.txt", "r", encoding="utf-8") as f:
 
 setup(
     name="company_name_matcher",
-    version="0.1.1",
+    version="0.1.2",
     author="Eason Suen",
     author_email=None,
     description="A library for matching and comparing company names using a fine-tuned sentence transformer model",
