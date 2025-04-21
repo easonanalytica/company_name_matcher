@@ -10,7 +10,7 @@
 </p>
 
 
-Company Name Matcher is a library for efficient matching of company names using advanced embedding techniques. It leverages a language model to generate embeddings specifically tailored for company names.
+Company Name Matcher is a library for efficient matching of company names using vector search. It leverages a language model to generate embeddings specifically tailored for company names.
 
 ## Advantages over Traditional Methods
 
@@ -35,7 +35,7 @@ An optional installation with "pip install . --no-binary scikit-learn" is recomm
 
 - **K-Means approximated matching**: Use vector search with either exact or approximate matching
 - **Easily expand index**: Easily add new companies to the existing index without rebuilding the index from scratch
-- **Working with embeddings**: Direct access to embeddings for further analysis
+- **Efficient batch processing**: Process multiple companies in parallel and with caching for faster matching
 
 ## 📚 Quick Start
 
@@ -134,14 +134,14 @@ While you can load your own model into CompanyNameMatcher, we provide our comple
 
 ### Performance Comparison
 
-Here's a sample comparison of Company Name Matcher with RapidFuzz on the test dataset with threshold 0.9:
+Here's a comparison of different matching approaches on our test dataset:
 
-| Metric        | Company Name Matcher | RapidFuzz |
-|---------------|----------------------|-----------|
-| Accuracy      | 0.855                | 0.670     |
-| Precision     | 0.928                | 0.886     |
-| Recall        | 0.770                | 0.390     |
-| F1 Score      | 0.842                | 0.542     |
+| Metric        | Fine-tuned Matcher | Default Matcher | RapidFuzz |
+|---------------|--------------------|--------------------|-----------|
+| Accuracy      | 0.900              | 0.780              | 0.690     |
+| Precision     | 0.885              | 0.719              | 0.807     |
+| Recall        | 0.920              | 0.920              | 0.500     |
+| F1 Score      | 0.902              | 0.807              | 0.617     |
 
 While RapidFuzz is faster, Company Name Matcher provides better accuracy and scalability (as the lists for matching increase in size, we can use k-means approximated matching).
 
