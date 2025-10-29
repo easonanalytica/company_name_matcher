@@ -6,7 +6,7 @@
   <a href="https://badge.fury.io/py/company_name_matcher"><img src="https://badge.fury.io/py/company_name_matcher.svg" alt="PyPI version"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.9+-blue.svg" alt="Python 3.9+"></a>
-  <a href="https://github.com/easonanalytica/company_name_matcher/stargazers"><img src="https://img.shields.io/github/stars/easonanalytica/company_name_matcher.svg" alt="GitHub stars"></a>
+  <a href="https://pepy.tech/project/company-name-matcher"><img src="https://static.pepy.tech/badge/company-name-matcher" alt="Downloads"></a>
 </p>
 
 
@@ -28,8 +28,6 @@ While traditional string matching algorithms like those used in RapidFuzz are fa
 ```
 pip install company-name-matcher
 ```
-
-An optional installation with `pip install . --no-binary scikit-learn` is recommended to fix an OpenMP compatibility issue with sklearn.
 
 ## 📣 Features
 
@@ -124,15 +122,15 @@ print(f"Embeddings shape: {embeddings.shape}")
 
 ## 🤖 (Complementary) fine-tuned model
 
-While you can load your own model into CompanyNameMatcher, we provide our complementary fine-tuned model avaliable for download [here](https://drive.google.com/file/d/11LaI2-1Ahqqfo73CKOPNgRSCJe_y9nnG/view?usp=sharing) on Google Drive. See demo [here](https://github.com/easonanalytica/company_name_matcher/blob/main/demo.ipynb).
+While you can load your own model into CompanyNameMatcher, we provide our complementary fine-tuned model avaliable for download [here](https://drive.google.com/file/d/1QPB83GKp8nvZXAI77CsShpS_WkKc5gB5/view?usp=sharing) on Google Drive. See demo [here](https://github.com/easonanalytica/company_name_matcher/blob/main/demo.ipynb).
 
-1. **Fine-tuned Embeddings**: We use a lightweight multilingual sentence transformer model (sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2) fine-tuned specifically for company names. This model was trained using contrastive learning, minimizing the cosine distance between similar company names.
+1. **Fine-tuned Embeddings**: We use a lightweight multilingual sentence transformer model fine-tuned specifically for company names. This model was trained using contrastive learning, minimizing the cosine distance between similar company names.
 
-2. **Special Tokens**: During the training process, we added special tokens **#** to the training data. These tokens guide the model's understanding, explicitly informing it that it's embedding company names. This results in more accurate and context-aware embeddings.
+2. **Special Tokens**: During the training process, we added special tokens **$** to the training data. These tokens guide the model's understanding, explicitly informing it that it's embedding company names. This results in more accurate and context-aware embeddings.
 
 3. **Cosine Similarity**: We use cosine similarity to compare the resulting embeddings, providing a robust measure of similarity that works well with high-dimensional data.
 
-### Performance Comparison
+### V1 Performance Comparison
 
 Here's a comparison of different matching approaches on our test dataset:
 
