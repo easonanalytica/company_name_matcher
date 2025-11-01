@@ -12,5 +12,5 @@ class SentenceTransformer:
         batch_size: int = 32,
         show_progress_bar: bool = False,
         convert_to_numpy: bool = True,
-    ) -> NDArray[np.float64]:
+    ) -> NDArray[np.floating]:
         ...
