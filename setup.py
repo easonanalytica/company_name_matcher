@@ -27,4 +27,7 @@ setup(
     ],
     python_requires=">=3.9",
     install_requires=requirements,
+    extra_require={
+        "test": ["pytest>=8.0.0"]
+    }
 )
