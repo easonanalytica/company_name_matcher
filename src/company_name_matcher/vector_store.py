@@ -1,15 +1,16 @@
 import h5py
 import logging
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 import numpy as np
 from sklearn.cluster import KMeans
 from joblib import dump, load
 import os
+from numpy.typing import NDArray
 
 logger = logging.getLogger(__name__)
 
 class VectorStore:
-    def __init__(self, embeddings: np.ndarray, items: List[str]):
+    def __init__(self, embeddings: NDArray[np.floating], items: List[str]):
         if len(embeddings) == 1 and embeddings[0][0] == 0 and items == ["dummy"]:
             # Special case for dummy initialization
             self.embeddings = embeddings
@@ -19,9 +20,9 @@ class VectorStore:
             self.embeddings = embeddings / np.linalg.norm(embeddings, axis=1)[:, np.newaxis]
             self.items = items
         self.kmeans = None
-        self.clusters = None
+        self.clusters: Optional[NDArray[np.signedinteger]]  = None
         
-    def build_index(self, n_clusters: int = 100, save_path: str = None, overwrite: bool = True):
+    def build_index(self, n_clusters: int = 100, save_path: Optional[str] = None, overwrite: bool = True):
         """
         Build k-means clustering index for approximate search
         
@@ -103,7 +104,7 @@ class VectorStore:
         self.kmeans = data['kmeans']
         self.clusters = data['clusters']
 
-    def search(self, query_embedding: np.ndarray, k: int = 5, use_approx: bool = False, n_probe_clusters: int = 3) -> List[Tuple[str, float]]:
+    def search(self, query_embedding: NDArray[np.floating], k: int = 5, use_approx: bool = False, n_probe_clusters: int = 3) -> List[Tuple[str, float]]:
         """
         Search for similar items using either exact or approximate k-means search
         
@@ -125,7 +126,7 @@ class VectorStore:
             similarities = self._cosine_similarity(query_embedding.reshape(1, -1), self.embeddings)
             k = min(k, len(self.items))  # Ensure k is not larger than the number of items
             indices = np.argsort(similarities.flatten())[-k:][::-1]
-            return [(self.items[i], similarities.flatten()[i]) for i in indices]
+            return [(self.items[i], float(similarities.flatten()[i])) for i in indices]
         
         # Approximate search using k-means
         # Get distances to all cluster centers
@@ -135,11 +136,10 @@ class VectorStore:
         closest_clusters = np.argsort(distances)[:n_probe_clusters]
         
         # Collect all indices from the closest clusters
-        all_indices = []
-        for cluster in closest_clusters:
-            cluster_indices = np.where(self.clusters == cluster)[0]
-            all_indices.extend(cluster_indices)
-        
+        all_indices: NDArray[np.signedinteger] = np.concatenate([
+            np.where(self.clusters == cluster)[0] for cluster in closest_clusters
+        ])
+                
         # If no indices found (shouldn't happen but just in case), fall back to exact search
         if len(all_indices) == 0:
             logger.warning(f"No items found in the {n_probe_clusters} closest clusters. Falling back to exact search.")
@@ -157,16 +157,16 @@ class VectorStore:
         top_k_indices = np.argsort(cluster_similarities.flatten())[-k:][::-1]
         
         return [(self.items[all_indices[i]], 
-                cluster_similarities.flatten()[i]) 
+                float(cluster_similarities.flatten()[i])) 
                 for i in top_k_indices]
     
     @staticmethod
-    def _cosine_similarity(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    def _cosine_similarity(a: NDArray[np.floating], b: NDArray[np.floating]) -> NDArray[np.floating]:
         """Calculate cosine similarity between normalized vectors"""
         # Since vectors are normalized, cosine similarity is just the dot product
         return np.dot(a, b.T) 
 
-    def add_items(self, new_embeddings: np.ndarray, new_items: List[str], save_dir: str = None, overwrite: bool = True):
+    def add_items(self, new_embeddings: NDArray[np.floating], new_items: List[str], save_dir: Optional[str] = None, overwrite: bool = True):
         """
         Add new items to the existing index
         
@@ -187,7 +187,8 @@ class VectorStore:
         if self.kmeans is not None:
             # Predict clusters for new items
             new_clusters = self.kmeans.predict(normalized_embeddings)
-            self.clusters = np.concatenate([self.clusters, new_clusters])
+            assert self.clusters is not None, "clusters should not be None here"
+            self.clusters = np.concatenate([self.clusters.astype(np.signedinteger), new_clusters])
         
         # Save updated index if save_dir is provided
         if save_dir:
