@@ -16,9 +16,11 @@ dependencies = [
     "numpy<2.0.0",
     "scikit-learn>=1.6.0",
     "h5py>=3.8.0",
-    "pandas>=2.0.0",
     "pytest>=8.0.0",
 ]
+optional-dependencies = {
+    demo = ["pandas>=2.0.0"] 
+}
 classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
