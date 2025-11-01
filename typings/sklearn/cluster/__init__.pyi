@@ -7,3 +7,9 @@ class KMeans():
 
     def fit_predict(self, X: NDArray[np.floating]) -> NDArray[np.signedinteger]: 
         ...
+
+    def transform(self, X: NDArray[np.floating]) -> NDArray[np.floating]: 
+        ...
+
+    def predict(self, X: NDArray[np.floating]) -> NDArray[np.signedinteger]:
+        ...
