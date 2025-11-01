@@ -1,5 +1,5 @@
 # typings/h5py/__init__.pyi
-from typing import Any, Union, Tuple, Optional, Type
+from typing import Any, Union, Tuple, Optional, Type, List
 import numpy as np
 from numpy.typing import NDArray
 from types import TracebackType
@@ -11,7 +11,7 @@ class Dataset:
     def __getitem__(self, key: Union[int, str, slice, Tuple[Union[int, slice], ...]]) -> NDArray[np.floating]:
         ...
 
-    def __setitem__(self, key: Union[int, str, slice, Tuple[Union[int, slice], ...]], value: NDArray[np.floating]) -> None:
+    def __setitem__(self, key: Union[int, str, slice, Tuple[Union[int, slice], ...]], value: Union[NDArray[np.floating],List[str]]) -> None:
         ...
 
 class File:
