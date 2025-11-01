@@ -5,5 +5,5 @@ class KMeans():
     def __init__(self, n_clusters:int) -> None:
          ...
 
-    def fit_predict(self, X: NDArray[np.floating]) -> NDArray[np.integer]: 
+    def fit_predict(self, X: NDArray[np.floating]) -> NDArray[np.signedinteger]: 
         ...
