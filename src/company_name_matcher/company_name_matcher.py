@@ -1,13 +1,13 @@
 import logging
 from sentence_transformers import SentenceTransformer
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Callable, Optional, Dict, cast
 import numpy as np
 from .vector_store import VectorStore
 import os
 import re
 import multiprocessing
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
-from functools import partial
+from concurrent.futures import ThreadPoolExecutor
+from numpy.typing import NDArray
 
 logger = logging.getLogger(__name__)
 
@@ -15,21 +15,21 @@ class CompanyNameMatcher:
     def __init__(
         self,
         model_path: str = "models/fine_tuned_model",
-        preprocess_fn: callable = None,
-        stopwords: List[str] = None,
+        preprocess_fn: Optional[Callable[[str], str]] = None,
+        stopwords: List[str] = ["inc", "corp", "corporation", "llc", "ltd", "limited", "company"],
         use_cache: bool = True,
         cache_size: int = 1000
     ):
         self.embedder = SentenceTransformer(model_path)
         self.vector_store = None
-        self.stopwords = stopwords or ["inc", "corp", "corporation", "llc", "ltd", "limited", "company"]
+        self.stopwords = stopwords
         # Use custom preprocessing function if provided, otherwise use default
         self.preprocess_fn = preprocess_fn if preprocess_fn is not None else self._default_preprocess
         
         # Embedding cache
         self.use_cache = use_cache
         self.cache_size = cache_size
-        self.embedding_cache = {}
+        self.embedding_cache: Dict[str, NDArray[np.floating]] = {}
 
     def _default_preprocess(self, name: str) -> str:
         """Default preprocessing: lowercase, remove special chars and optional stopwords."""
@@ -47,7 +47,7 @@ class CompanyNameMatcher:
         """Preprocess company name using the configured preprocessing function."""
         return self.preprocess_fn(name)
 
-    def get_embedding(self, company_name: str) -> np.ndarray:
+    def get_embedding(self, company_name: str) -> NDArray[np.floating]:
         """Get the embedding for a single company name with caching."""
         preprocessed_name = self._preprocess_company_name(company_name)
         
@@ -67,7 +67,7 @@ class CompanyNameMatcher:
         
         return embedding
 
-    def get_embeddings(self, company_names: List[str]) -> np.ndarray:
+    def get_embeddings(self, company_names: List[str]) -> NDArray[np.floating]:
         """get embeddings for a list of company names."""
         preprocessed_names = [self._preprocess_company_name(name) for name in company_names]
         return self.embedder.encode(preprocessed_names)
@@ -78,7 +78,7 @@ class CompanyNameMatcher:
         embedding_b = self.get_embedding(company_b)
         return self._cosine_similarity(embedding_a, embedding_b)[0][0]
 
-    def build_index(self, company_list: List[str], n_clusters: int = 100, save_dir: str = None):
+    def build_index(self, company_list: List[str], n_clusters: int = 100, save_dir: Optional[str] = None):
         """
         Build search index for the company list
 
@@ -156,7 +156,7 @@ class CompanyNameMatcher:
 
     def _find_matches_single(
         self, 
-        target_embedding: np.ndarray, 
+        target_embedding: NDArray[np.floating], 
         threshold: float, 
         k: int, 
         use_approx: bool,
@@ -165,6 +165,7 @@ class CompanyNameMatcher:
         """Find matches for a single embedding."""
         if use_approx:
             # Get more candidates than k since we'll filter by threshold
+            assert self.vector_store is not None, "vector_store is not initialised yet"
             matches = self.vector_store.search(
                 target_embedding, 
                 k=max(k * 2, 20), 
@@ -178,8 +179,9 @@ class CompanyNameMatcher:
             matches = matches[:k]
         else:
             # Use exact search with the stored embeddings
+            assert self.vector_store is not None, "vector_store is not initialised yet"
             similarities = self._cosine_similarity(target_embedding.reshape(1, -1), self.vector_store.embeddings)
-            similarities = similarities.flatten()
+            similarities = similarities.flatten().tolist()
 
             # Get all matches above threshold
             matches = [(company, similarity)
@@ -199,20 +201,20 @@ class CompanyNameMatcher:
         n_probe_clusters: int
     ) -> List[List[Tuple[str, float]]]:
         """Process multiple companies in batches sequentially."""
-        results = []
+        results: List[List[Tuple[str, float]]] = []
         
         # Process in batches
         for i in range(0, len(target_companies), batch_size):
             batch = target_companies[i:i+batch_size]
             batch_embeddings = self.get_embeddings(batch)
             
-            batch_results = []
+            batch_results: List[List[Tuple[str, float]]] = []
             for embedding in batch_embeddings:
                 matches = self._find_matches_single(embedding, threshold, k, use_approx, n_probe_clusters)
                 batch_results.append(matches)
                 
             results.extend(batch_results)
-            
+        
         return results
 
     def _batch_find_matches_parallel(
@@ -232,21 +234,21 @@ class CompanyNameMatcher:
         n_jobs = min(n_jobs, multiprocessing.cpu_count())
         
         # Create batches
-        batches = []
+        batches: List[List[str]] = []
         for i in range(0, len(target_companies), batch_size):
             batches.append(target_companies[i:i+batch_size])
         
         # Define the worker function
-        def process_batch(batch):
+        def process_batch(batch: List[str]) -> List[List[Tuple[str, float]]]:
             batch_embeddings = self.get_embeddings(batch)
-            batch_results = []
+            batch_results: List[List[Tuple[str, float]]] = []
             for embedding in batch_embeddings:
                 matches = self._find_matches_single(embedding, threshold, k, use_approx, n_probe_clusters)
                 batch_results.append(matches)
             return batch_results
         
         # Process batches in parallel
-        results = []
+        results: List[List[Tuple[str, float]]] = []
         with ThreadPoolExecutor(max_workers=n_jobs) as executor:
             batch_results = list(executor.map(process_batch, batches))
             
@@ -281,12 +283,12 @@ class CompanyNameMatcher:
         Returns:
             List of match results for each target company
         """
-        return self.find_matches(
+        return cast(List[List[Tuple[str, float]]], self.find_matches(
             target_companies, threshold, k, use_approx, batch_size, n_jobs
-        )
+        ))
 
     @staticmethod
-    def _cosine_similarity(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    def _cosine_similarity(a: NDArray[np.floating], b: NDArray[np.floating]) -> NDArray[np.floating]:
         """Calculate cosine similarity between two vectors or between a vector and a matrix."""
         logger.debug(f"Input shapes: a={a.shape}, b={b.shape}")
 
@@ -311,7 +313,7 @@ class CompanyNameMatcher:
 
         return result
 
-    def expand_index(self, new_company_list: List[str], save_dir: str = None):
+    def expand_index(self, new_company_list: List[str], save_dir: Optional[str] = None):
         """
         Add new companies to the existing index
 
