@@ -27,4 +27,7 @@ setup(
     ],
     python_requires=">=3.9",
     install_requires=requirements,
+    extra_require={
+        "demo": ["pandas>=2.0.0"],
+    }
 )
