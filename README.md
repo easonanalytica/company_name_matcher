@@ -12,6 +12,17 @@
 
 Company Name Matcher is a library for efficient matching of company names using vector search. It leverages a language model to generate embeddings specifically tailored for company names.
 
+## Why Company Name Matching?
+
+**Reconciliation is a universal task** in data-driven industries. Company names appear inconsistently across different sources - "Apple Inc", "Apple Incorporated", "苹果公司" might all refer to the same entity.
+
+**Key Use Cases:**
+- **📊 Big Data Analytics**: Unify company mentions across news, social media, and financial reports
+- **💼 Portfolio Analysis**: Match investment holdings against multiple data sources
+- **🔗 Supply Chain Analytics**: Track vendors and suppliers across procurement systems
+- **📈 Market Intelligence**: Aggregate company data from diverse sources for comprehensive analysis
+- **🏦 Financial Reporting**: Ensure consistent entity identification across regulatory filings
+
 ## Advantages over Traditional Methods
 
 While traditional string matching algorithms like those used in RapidFuzz are fast for small datasets, Company Name Matcher offers several advantages, especially when dealing with larger datasets:
@@ -110,15 +121,6 @@ embeddings = matcher.get_embeddings(["Microsoft", "Google"])
 print(f"Embeddings shape: {embeddings.shape}")
 ```
 
-## 📊 Performance Considerations
-
-1. For small datasets (<10,000 companies), use exact matching (`use_approx=False`)
-2. For large datasets, use approximate matching (`use_approx=True`) with appropriate `n_clusters`
-3. When using approximate matching:
-   - Build the index once and save it to disk
-   - Load the index for subsequent uses
-   - Adjust `n_clusters` based on your dataset size and speed/accuracy requirements
-
 
 ## 🤖 (Complementary) fine-tuned model
 
@@ -143,6 +145,12 @@ Here's a comparison of different matching approaches on our test dataset:
 
 While RapidFuzz is faster, Company Name Matcher provides better accuracy and scalability (as the lists for matching increase in size, we can use k-means approximated matching).
 
+## 🤝 Contributing
+
+We welcome contributions! Whether you're improving code, adding training data, or reporting issues:
+
+- **Code contributions**: See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines
+- **Bug reports & feature requests**: Open an issue on GitHub
 
 ## 📝 License
 
