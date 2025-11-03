@@ -1,4 +1,4 @@
-# Contributing to Company Name Matcher
+# 🤗 Contributing to Company Name Matcher
 
 Thank you for your interest in contributing to Company Name Matcher! This document outlines the process for contributing to the project.
 
@@ -97,7 +97,12 @@ pytest tests/
 
 3. **Review**: Maintainers will review and may request changes
 
-4. **Merge**: Once approved, your PR will be merged into `dev` and included in the next release.
+4. **Merge to dev**: Once approved, your PR will be merged into `dev`
+
+5. **Release Process**: When ready for release, maintainers will:
+   - Create a PR from `dev` to `main`
+   - After merging to `main`, changes are automatically synced back to `dev`
+   - This keeps both branches in sync and eliminates manual merge commits
 
 ## Data Contributions
 
