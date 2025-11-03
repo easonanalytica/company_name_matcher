@@ -39,7 +39,7 @@ Thank you for your interest in contributing to Company Name Matcher! This docume
 When creating an issue, please add the appropriate label:
 
 - **`bug`**: Something isn't working
-- **`invalid`**: This doesn't seem right but it doesn't cause a code break like a bug would
+- **`maintenance`**: Something doesn't seem right but it doesn't cause a code break like a bug would
 - **`enhancement`**: New feature or request
 - **`documentation`**: Improvements or additions to documentation
 - **`question`**: Further information is requested
@@ -61,7 +61,7 @@ When creating an issue, please add the appropriate label:
    - `bug` → `fix/` (e.g., `fix/memory-leak`)
    - `enhancement` → `feature/` (e.g., `feature/add-caching`)
    - `documentation` → `docs/` (e.g., `docs/update-readme`)
-   - `maintenance` → `refactor/` (e.g., `refactor/clean-api`)
+   - `maintenance` → `chore/` (e.g., `chore/clean-api`)
 
 2. **Make your changes** and commit:
    ```bash
