@@ -90,6 +90,6 @@ Use publicly available data: company registries (SEC EDGAR, Companies House), of
 
 ## Questions?
 
-Check [existing issues](../../issues) or open a new one with the `question` label. See [CONTRIBUTING.md](../../CONTRIBUTING.md) for the full contribution guide.
+Check [existing issues](https://github.com/easonanalytica/company_name_matcher/issues) or open a new one with the `question` label. See [CONTRIBUTING.md](../CONTRIBUTING.md) for the full contribution guide.
 
 **Thank you for helping improve Company Name Matcher!** 🎯
