@@ -61,7 +61,7 @@ When creating an issue, please add the appropriate label:
    - `bug` → `fix/` (e.g., `fix/memory-leak`)
    - `enhancement` → `feature/` (e.g., `feature/add-caching`)
    - `documentation` → `docs/` (e.g., `docs/update-readme`)
-   - `invalid` → `refactor/` (e.g., `refactor/clean-api`)
+   - `maintenance` → `refactor/` (e.g., `refactor/clean-api`)
 
 2. **Make your changes** and commit:
    ```bash
