@@ -36,7 +36,9 @@ Thank you for your interest in contributing to Company Name Matcher! This docume
 
 ## Reporting Issues
 
-When creating an issue, help us categorize it by **including the category in your issue title** (e.g., `[bug] Memory leak in matcher`, `[docs] Clarify contribution guidelines`).
+**Include the category in your issue title** (e.g., `[bug] Memory leak in matcher`, `[docs] Clarify contribution guidelines`).
+
+This helps you categorize the issue type before submitting and helps maintainers prioritize and label issues during triage.
 
 **Issue categories:**
 - **`bug`**: Something isn't working
@@ -44,6 +46,8 @@ When creating an issue, help us categorize it by **including the category in you
 - **`enhancement`**: New feature or request
 - **`documentation`**: Improvements or additions to documentation
 - **`question`**: Further information is requested
+
+*Maintainers will apply final labels when triaging issues.*
 
 
 ## Code Contributions
