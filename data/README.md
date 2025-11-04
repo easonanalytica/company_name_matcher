@@ -95,6 +95,7 @@ canonical_name,variation,country_code,source
 
 ### File Requirements
 - One variation per row
+- `canonical_name` and `variation` must be different (no identical pairs)
 - No duplicate canonical names within the same file
 - Valid country codes (check `_reference/countrycode.csv`)
 - UTF-8 encoding
