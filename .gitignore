@@ -60,3 +60,6 @@ ENV/
 
 # models - https://drive.google.com/file/d/13L-yKsb0TYMb3UF68-XOvO8Lf-efTRiT/view?usp=sharing
 models/fine_tuned_model/*
+
+# pytest cache
+.pytest_cache/

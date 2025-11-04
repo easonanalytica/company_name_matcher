@@ -36,13 +36,19 @@ Thank you for your interest in contributing to Company Name Matcher! This docume
 
 ## Reporting Issues
 
-When creating an issue, please add the appropriate label:
+**Include the category in your issue title** (e.g., `[bug] Memory leak in matcher`, `[docs] Clarify contribution guidelines`).
 
+This helps you categorize the issue type before submitting and helps maintainers prioritize and label issues during triage.
+
+**Issue categories:**
 - **`bug`**: Something isn't working
-- **`maintenance`**: Something doesn't seem right but it doesn't cause a code break like a bug would
+- **`maintenance`**: Code cleanup, refactoring, or technical debt
 - **`enhancement`**: New feature or request
 - **`documentation`**: Improvements or additions to documentation
 - **`question`**: Further information is requested
+
+*Maintainers will apply final labels when triaging issues.*
+
 
 ## Code Contributions
 
