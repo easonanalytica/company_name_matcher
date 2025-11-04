@@ -1,0 +1,138 @@
+name: Test Dev to Main PR
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - '.github/**'
+
+jobs:
+  test:
+    if: github.event.pull_request.head.ref == 'dev'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-${{ matrix.python-version }}-
+          ${{ runner.os }}-pip-
+
+    - name: Install core dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -e .
+
+    - name: Install test dependencies
+      run: |
+        pip install -e ".[test]"
+
+    - name: Run tests
+      run: |
+        pytest tests/ -v --tb=short
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-${{ matrix.python-version }}
+        path: |
+          test-results/
+          *.xml
+        retention-days: 7
+
+  lint:
+    if: github.event.pull_request.head.ref == 'dev'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install linting dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 black isort
+
+    - name: Run linting
+      run: |
+        # Stop the build if there are Python syntax errors or undefined names
+        flake8 src/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Exit-zero treats all errors as warnings
+        flake8 src/ tests/ --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
+
+    - name: Check code formatting with black
+      run: |
+        black --check --diff src/ tests/
+
+  security:
+    if: github.event.pull_request.head.ref == 'dev'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Bandit security linter
+      uses: github/super-linter/slim@v5
+      env:
+        DEFAULT_BRANCH: main
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        VALIDATE_PYTHON_BANDIT: true
+        PYTHON_BANDIT_CONFIG_FILE: .bandit
+
+  build:
+    if: github.event.pull_request.head.ref == 'dev'
+    runs-on: ubuntu-latest
+    needs: [test, lint, security]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine
+
+    - name: Build package
+      run: python -m build
+
+    - name: Check package
+      run: |
+        twine check dist/*
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: package-build
+        path: dist/
+        retention-days: 7

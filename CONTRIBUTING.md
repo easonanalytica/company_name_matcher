@@ -27,6 +27,8 @@ Thank you for your interest in contributing to Company Name Matcher! This docume
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    pip install -r requirements.txt
    pip install -e .
+   # Optional: Install test dependencies if you want to run tests
+   pip install -e ".[test]"
    ```
 
 3. **Verify setup**:
@@ -98,7 +100,8 @@ pytest tests/
 1. **Open a pull request** against the `dev` branch (not `main`)
 
 2. **PR Checklist**:
-   - ✅ All tests pass
+   - ✅ All tests pass locally
+   - ✅ Automated testing passes (for dev→main PRs)
    - ✅ New features include tests
    - ✅ Documentation updated (if applicable)
    - ✅ Clear description of changes
@@ -109,6 +112,7 @@ pytest tests/
 
 5. **Release Process**: When ready for release, maintainers will:
    - Create a PR from `dev` to `main`
+   - **Automated testing** will run on multiple Python versions (3.9-3.12)
    - After merging to `main`, changes are automatically synced back to `dev`
    - This keeps both branches in sync and eliminates manual merge commits
 

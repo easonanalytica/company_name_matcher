@@ -34,10 +34,10 @@ def default_matcher():
 def finetuned_matcher():
     """Create a fine-tuned CompanyNameMatcher."""
     def preprocess_name(name):
-        return "#" + name.strip() + "#"  # pretrained tokens
+        return "$" + name.strip()  # v2 model pretrained tokens
     
     return CompanyNameMatcher(
-        "models/multilingual-MiniLM-small-v1",
+        "easonanalytica/cnm-multilingual-small-v2",
         preprocess_fn=preprocess_name
     )
 

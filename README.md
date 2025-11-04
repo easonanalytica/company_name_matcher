@@ -122,28 +122,28 @@ print(f"Embeddings shape: {embeddings.shape}")
 ```
 
 
-## 🤖 (Complementary) fine-tuned model
+## 🤖 Fine-tune Your Model
 
-While you can load your own model into CompanyNameMatcher, we provide our complementary fine-tuned model avaliable for download [here](https://drive.google.com/file/d/1QPB83GKp8nvZXAI77CsShpS_WkKc5gB5/view?usp=sharing) on Google Drive. See demo [here](https://github.com/easonanalytica/company_name_matcher/blob/main/demo.ipynb).
+As PoC, we provide a complementary fine-tuned model on [Hugging Face](https://huggingface.co/easonanalytica/cnm-multilingual-small-v2). See a demo [here](https://github.com/easonanalytica/company_name_matcher/blob/main/demo.ipynb).
 
-1. **Fine-tuned Embeddings**: We use a lightweight multilingual sentence transformer model fine-tuned specifically for company names. This model was trained using contrastive learning, minimizing the cosine distance between similar company names.
+1. **Fine-tuned Embeddings**: We used a lightweight multilingual sentence transformer model fine-tuned specifically for company names. This model was trained using contrastive learning, minimizing the cosine distance between similar company names.
 
 2. **Special Tokens**: During the training process, we added special tokens **$** to the training data. These tokens guide the model's understanding, explicitly informing it that it's embedding company names. This results in more accurate and context-aware embeddings.
 
 3. **Cosine Similarity**: We use cosine similarity to compare the resulting embeddings, providing a robust measure of similarity that works well with high-dimensional data.
 
-### V1 Performance Comparison
+## 📊 Performance Comparison
 
-Here's a comparison of different matching approaches on our test dataset:
+| Model            | Accuracy | Precision | Recall | F1 Score |
+|------------------|----------|-----------|--------|----------|
+| Fine-tuned Matcher | 0.724   | 0.974    | 0.521 | 0.679   |
+| Default Matcher    | 0.685   | 0.861    | 0.521 | 0.649   |
+| RapidFuzz         | 0.614   | 1.000    | 0.310 | 0.473   |
 
-| Metric        | Fine-tuned Matcher | Default Matcher | RapidFuzz |
-|---------------|--------------------|--------------------|-----------|
-| Accuracy      | 0.910              | 0.780              | 0.690     |
-| Precision     | 0.918              | 0.719              | 0.807     |
-| Recall        | 0.900              | 0.920              | 0.500     |
-| F1 Score      | 0.909              | 0.807              | 0.617     |
+**Based on evaluation of hard test data** (`tests/test_data.csv`) containing company name pairs in English, Chinese (中文), Japanese (日本語), Korean (한국어). Decision threshold: 0.7 for all three.
 
-While RapidFuzz is faster, Company Name Matcher provides better accuracy and scalability (as the lists for matching increase in size, we can use k-means approximated matching).
+*Note: Performance metrics may vary based on your specific use case and data distribution.*
+
 
 ## 🤝 Contributing
 
