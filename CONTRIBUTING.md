@@ -42,6 +42,7 @@ This helps you categorize the issue type before submitting and helps maintainers
 
 **Issue categories:**
 - **`bug`**: Something isn't working
+- **`data`**: Data-related issues or contributions
 - **`maintenance`**: Code cleanup, refactoring, or technical debt
 - **`enhancement`**: New feature or request
 - **`documentation`**: Improvements or additions to documentation
@@ -65,6 +66,7 @@ This helps you categorize the issue type before submitting and helps maintainers
 
    **Recommended branch naming conventions** (based on issue labels):
    - `bug` → `fix/` (e.g., `fix/memory-leak`)
+   - `data` → `data/` (e.g., `data/add-us-company-names`)
    - `enhancement` → `feature/` (e.g., `feature/add-caching`)
    - `documentation` → `docs/` (e.g., `docs/update-readme`)
    - `maintenance` → `chore/` (e.g., `chore/clean-api`)
