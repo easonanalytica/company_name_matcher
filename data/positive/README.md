@@ -1,0 +1,69 @@
+# ➕ Contributing Positive Data Examples
+
+Positive examples are pairs of names representing the **same legal entity** but with different surface forms.
+
+## 🎯 What are Positive Examples?
+
+Pairs of `canonical_name` (official registered legal entity name) and `variation` (alternative name) that refer to the same company. Common variations include:
+
+- **Abbreviations & Acronyms**: "International Business Machines Corporation" → "IBM"
+- **Legal Entity Suffixes**: "Apple Inc" → "Apple Incorporated", "Apple Corporation"
+- **Language Translations**: "Apple Inc" → "苹果公司", "삼성전자주식회사" → "Samsung Electronics"
+- **Common Misspellings**: "Microsoft Corporation" → "Microsft Corporation"
+- **Punctuation Differences**: "McDonald's Corporation" → "McDonalds", "Nestlé S.A." → "Nestle SA"
+- **Stock Tickers**: "Apple Inc" → "AAPL", "Alphabet Inc" → "GOOGL"
+- **Historical Names**: "Apple Inc" → "Apple Computer Inc"
+
+## 📋 CSV Format
+
+**Filename**: `{index}.csv` (e.g., `001.csv`, `002.csv`)
+
+**Columns**:
+- `canonical_name` *(required)*: Official registered legal entity name
+- `variation` *(required)*: Alternative name/abbreviation/variation
+- `country_code` *(required)*: Two-letter ISO country code (see `../_reference/countrycode.csv`)
+- `source` *(optional)*: Data source
+
+**Rules**:
+- One variation per row
+- `canonical_name` ≠ `variation` (must be different)
+- Both represent the **same legal entity**
+- UTF-8 encoding
+ - Not included: related-but-different entities (parent/subsidiary, sister companies)
+
+## 📊 Examples
+
+**US Companies** (`001.csv`):
+```csv
+canonical_name,variation,country_code,source
+"Apple Inc","Apple","US","SEC EDGAR"
+"Apple Inc","Apple Incorporated","US","legal variation"
+"Apple Inc","AAPL","US","stock ticker"
+"International Business Machines Corporation","IBM","US","abbreviation"
+"Alphabet Inc","Google","US","common usage"
+```
+
+**Chinese Companies** (`002.csv`):
+```csv
+canonical_name,variation,country_code,source
+"苹果电脑贸易（上海）有限公司","Apple Computer Trading Shanghai","CN","english translation"
+"苹果电脑贸易（上海）有限公司","苹果上海","CN","common usage"
+"阿里巴巴集团控股有限公司","Alibaba Group","CN","common usage"
+"阿里巴巴集团控股有限公司","BABA","CN","stock ticker"
+```
+
+**Korean Companies** (`003.csv`):
+```csv
+canonical_name,variation,country_code,source
+"삼성전자주식회사","Samsung Electronics","KR","english translation"
+"삼성전자주식회사","삼성전자","KR","common usage"
+"현대자동차주식회사","Hyundai Motor Company","KR","english translation"
+```
+
+## 🤝 How to Contribute
+
+1. Create CSV file following the format above
+2. Place in `data/positive/` directory
+3. Submit PR to `dev` branch (see `../../CONTRIBUTING.md`)
+
+**Thank you for helping improve company name matching!** 🎯

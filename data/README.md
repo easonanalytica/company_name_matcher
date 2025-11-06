@@ -1,141 +1,103 @@
 # 🤗 Data Contribution Guide
 
-Help improve company name matching by contributing datasets with real-world company name variations!
+Help improve company name matching by contributing real-world company name variations and contrastive examples!
 
-## Why This Matters
+## 🎯 Model Objective & Fine-tuning Requirements
 
-Company names appear inconsistently across data sources. "Apple Inc", "Apple Incorporated", and "苹果公司" might all refer to the same entity. This creates challenges for:
+The fine-tuned model aims to behave as follows:
 
-- **Big Data Analytics** – unifying company mentions across sources
-- **Portfolio Analysis** – matching holdings against market data
-- **Supply Chain** – tracking vendors across systems
-- **Market Intelligence** – aggregating data from diverse sources
+- **Perfect positive similarity** (score ≈ 1.0): Same legal entity, different names (e.g., "Apple Inc" ↔ "Apple")
+- **Natural positive similarity** (score ≈ 0.5-0.8): Related entities in same corporate group (e.g., "Apple Inc" ↔ "苹果（中国）有限公司")
+- **Perfect negative similarity** (score ≈ 0.0): Unrelated companies (e.g., "Apple Inc" ↔ "Microsoft Corporation")
 
-Your contributions help the model learn these variations and improve matching accuracy.
+### Fine-tuning Data Needed
 
----
+To achieve this, we use **contrastive learning** with two types of examples:
 
-## How to Contribute
+1. **Positive Examples**: Pairs of `canonical_name` and `variation` representing the **same legal entity**
+2. **Negative Examples**: Pairs of `canonical_name_x` and `canonical_name_y` representing **unrelated companies**
 
-### 1. Create Your CSV File
+**Critical principles**:
+- **Use canonical legal entity names in all examples**: Positives teach surface-form variations around a canonical anchor; negatives compare relationships only between canonical entities, avoiding ambiguity across languages and sources.
+- **Do not include related entities as negatives**: Parent/subsidiary or same-group pairs should not be labeled 0 (that would push them apart during training). Let the model naturally place them in the neutral → positive range.
 
-**Filename format:** `{country_code}_{index}.csv`
+## 📁 Data Structure
 
-Examples: `US_001.csv`, `CN_001.csv`, `KR_001.csv`
-
-### 2. Add Your Data
-
-**Format:**
-```csv
-canonical_name,variation,country_code,source
-"Apple Inc","Apple","US","SEC EDGAR"
-"Apple Inc","Apple Incorporated","US","company website"
-"苹果电脑贸易（上海）有限公司","Apple Computer Trading (Shanghai)","CN","company registry"
-"苹果电脑贸易（上海）有限公司","苹果上海","CN","common usage"
+```
+data/
+├── positive/           # Name variations for same company
+│   ├── README.md      # Guidelines for positive examples
+│   └── *.csv          # Country-specific positive examples
+├── negative/           # Contrastive examples (different companies)
+│   ├── README.md      # Guidelines for negative examples
+│   └── *.csv          # Negative example pairs
+└── _reference/         # Supporting data
+    └── countrycode.csv # ISO country codes
 ```
 
-**Columns:**
-- **`canonical_name`** *(required)* – The official registered legal entity name
-- **`variation`** *(required)* – Any alternative name, abbreviation, or variation
-- **`country_code`** *(required)* – Two-letter ISO code (see `_reference/countrycode.csv`, ISO2 column)
-- **`source`** *(optional)* – Where the data came from (e.g., "SEC EDGAR", "company website")
+## 🚀 Quick Start
 
-### 3. Place File in `data/` Directory
+**For Positive Examples**: See [`positive/README.md`](positive/README.md)  
+**For Negative Examples**: See [`negative/README.md`](negative/README.md)
 
-Put your CSV file directly in the `data/` folder.
-
-### 4. Submit Pull Request
-
-Submit your PR to the `dev` branch. See [CONTRIBUTING.md](../CONTRIBUTING.md) for details.
+**Submit Your Contribution**:
+1. Create CSV following the appropriate format
+2. Place in correct folder (`positive/` or `negative/`)
+3. Submit PR to `dev` branch
 
 ---
 
-## Important: Understanding Legal Entities
+## Understanding Legal Entities (Canonical Names)
 
 **Each `canonical_name` represents a locally registered legal entity.**
 
-For multinationals like Apple:
-- **US entity**: "Apple Inc" (registered in California)
-- **China entities**: "苹果电脑贸易（上海）有限公司", "苹果（中国）有限公司" (separate legal entities in China)
+Multinational corporations have separate legal entities in each country:
 
-**These are different companies** with different registrations, even though they're part of the same corporate group.
+- **Apple Inc** (US entity, registered in California)
+- **苹果电脑贸易（上海）有限公司** (China entity, registered in Shanghai)
+- **苹果（中国）有限公司** (China entity, different registration)
 
-### What This Means for Contributors
+**These are distinct legal entities**, even though they're part of the same corporate group.
 
-✅ **Correct:**
+### Correct Usage Examples
+
+✅ **Positive Examples** (same legal entity):
 ```csv
 canonical_name,variation,country_code,source
 "Apple Inc","Apple","US","SEC EDGAR"
 "Apple Inc","AAPL","US","stock ticker"
 "苹果电脑贸易（上海）有限公司","Apple Computer Trading Shanghai","CN","company registry"
-"苹果电脑贸易（上海）有限公司","苹果上海","CN","common usage"
-"苹果（中国）有限公司","Apple China Limited","CN","company registry"
 ```
 
-❌ **Incorrect:**
+✅ **Negative Examples** (unrelated companies):
+```csv
+canonical_name_x,canonical_name_y,country_code_x,country_code_y,remark
+"Apple Inc","Microsoft Corporation","US","US","unrelated tech companies"
+"Samsung Electronics Co., Ltd.","LG Electronics Inc.","KR","KR","competitors"
+"Apple Inc","Orange SA","US","FR","unrelated companies with similar naming theme"
+```
+
+⚠️ **NOT for negatives** (related entities — let model learn natural similarity):
+```csv
+"Apple Inc","苹果电脑贸易（上海）有限公司","US","CN"  ← Related: same corporate group
+"Samsung Electronics Co., Ltd.","Samsung Heavy Industries Co., Ltd.","KR","KR"  ← Related: same corporate group
+```
+
+❌ **Incorrect** (mixing legal entities):
 ```csv
 canonical_name,variation,country_code,source
-"Apple","Apple Inc","US","SEC EDGAR"
+"Apple","Apple Inc","US","SEC EDGAR"  ← Wrong: "Apple" is not a legal entity name
 "Apple","苹果电脑贸易（上海）有限公司","CN","company registry"  ← Wrong: mixing different legal entities
 ```
 
 ---
 
-## Quality Requirements
+## File Requirements
 
-### Canonical Names
-- ✅ Try to use the **official registered legal name** in the local language
-- ✅ Should be accurate and correctly spelled
-- ✅ Represents a real legal entity
-
-### Variations
-- ✅ Include abbreviations, common names, translations, and alternative spellings
-- ✅ Can include informal names or common misspellings – that's valuable data!
-- ✅ Add local language variations when possible
-
-### File Requirements
-- One variation per row
-- `canonical_name` and `variation` must be different (no identical pairs)
-- No duplicate canonical names within the same file
-- Valid country codes (check `_reference/countrycode.csv`)
 - UTF-8 encoding
-
----
-
-## Examples
-
-### US Companies (`US_001.csv`)
-```csv
-canonical_name,variation,country_code,source
-"Apple Inc","Apple","US","SEC EDGAR"
-"Apple Inc","Apple Incorporated","US","SEC EDGAR"
-"Apple Inc","AAPL","US","stock ticker"
-"Alphabet Inc","Google","US","common usage"
-"Alphabet Inc","Alphabet","US","SEC EDGAR"
-"Amazon.com Inc","Amazon","US","company website"
-"Amazon.com Inc","AMZN","US","stock ticker"
-```
-
-### Chinese Companies (`CN_001.csv`)
-```csv
-canonical_name,variation,country_code,source
-"苹果电脑贸易（上海）有限公司","Apple Computer Trading Shanghai","CN","company registry"
-"苹果电脑贸易（上海）有限公司","苹果上海","CN","common usage"
-"阿里巴巴集团控股有限公司","Alibaba Group","CN","company website"
-"阿里巴巴集团控股有限公司","阿里巴巴","CN","common usage"
-"阿里巴巴集团控股有限公司","BABA","CN","stock ticker"
-```
-
-### Korean Companies (`KR_001.csv`)
-```csv
-canonical_name,variation,country_code,source
-"삼성전자주식회사","Samsung Electronics","KR","company website"
-"삼성전자주식회사","삼성전자","KR","common usage"
-"현대자동차주식회사","Hyundai Motor Company","KR","company website"
-"현대자동차주식회사","현대자동차","KR","common usage"
-```
-
----
+- Valid country codes (check `_reference/countrycode.csv`, ISO2 column)
+- No duplicate pairs within the same file
+- One pair per row
 
 ## Data Sources
 
@@ -144,7 +106,6 @@ Use publicly available data from:
 - Official company websites
 - Business directories
 - Stock exchanges
-- Academic datasets
 
 ---
 

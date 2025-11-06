@@ -84,6 +84,10 @@ This helps you categorize the issue type before submitting and helps maintainers
    git push origin feature/your-feature-name
    ```
 
+4. **Mark as ready for review** when your changes are complete:
+   - Click "Ready for review" on your GitHub PR
+   - This triggers automated testing
+
 ### Testing
 
 Run tests before submitting:
@@ -101,7 +105,10 @@ pytest tests/
 
 2. **PR Checklist**:
    - ✅ All tests pass locally
-   - ✅ Automated testing passes (for dev→main PRs)
+   - ✅ **Automated testing passes**:
+     - Ready PRs → `dev`: Core tests run on multiple Python versions (draft PRs skip automated tests)
+     - `dev` → `main`: Full test suite + linting + security + build checks
+   - ✅ **Data validation passes** (if contributing CSV data files)
    - ✅ New features include tests
    - ✅ Documentation updated (if applicable)
    - ✅ Clear description of changes
@@ -113,17 +120,42 @@ pytest tests/
 5. **Release Process**: When ready for release, maintainers will:
    - Create a PR from `dev` to `main`
    - **Automated testing** will run on multiple Python versions (3.9-3.12)
+   - **Automated data validation** will check all CSV files for duplicates and integrity
    - After merging to `main`, changes are automatically synced back to `dev`
    - This keeps both branches in sync and eliminates manual merge commits
 
 ## Data Contributions
 
-We welcome contributions of training data to improve model accuracy, especially for multilingual company name matching! For detailed instructions, see the [Data Contribution Guide](data/README.md).
+We welcome contributions of training data to improve model accuracy! We accept both positive examples (name variations for same company) and negative examples (contrastive pairs for different companies).
+
+**Data Types:**
+- **Positive Examples**: Name variations representing the same legal entity
+- **Negative Examples**: Pairs that may seem similar but are different companies
+
+For detailed instructions, see the [Data Contribution Guide](data/README.md).
 
 **Quick summary:**
-1. Create a CSV file with columns: `canonical_name,variation,country_code,source` (source is optional but recommended)
-2. Name it using the pattern `{country_code}_{index}.csv` (e.g., `US_001.csv`, `KR_002.csv`)
-3. Submit via pull request targeting the `dev` branch
+1. Choose type: `data/positive/` (same company) or `data/negative/` (different companies)
+2. Create CSV following the format in the respective README
+3. **Validate locally**: Run `python scripts/validate_data.py --file your_file.csv`
+4. Submit via pull request targeting the `dev` branch
+
+**Data Validation:**
+Before submitting, please validate your CSV files:
+```bash
+# Validate a single file
+python scripts/validate_data.py --file data/positive/your_file.csv
+
+# Validate all data files
+python scripts/validate_data.py --all
+```
+
+The validation checks for:
+- Correct CSV format and UTF-8 encoding
+- Required columns and valid data
+- Duplicate entries (within file and across repository)
+- Business logic compliance
+- Valid country codes
 
 Contributing data is a great way to help improve the model without writing code!
 

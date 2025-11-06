@@ -1,0 +1,57 @@
+name: Test PR to Dev
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [dev]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - '.github/**'
+      - 'data/**'
+
+jobs:
+  test:
+    # Run for ready PRs to dev (excluding dev→dev and draft PRs to avoid duplication)
+    if: github.event.pull_request.head.ref != 'dev' && !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.11', '3.12']
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-${{ matrix.python-version }}-
+          ${{ runner.os }}-pip-
+
+    - name: Install core dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -e .
+
+    - name: Install test dependencies
+      run: |
+        pip install -e ".[test]"
+
+    - name: Run tests
+      run: |
+        pytest tests/ -v --tb=short
+
+    - name: Basic lint check
+      run: |
+        python -m py_compile src/company_name_matcher/*.py
+        python -m py_compile tests/*.py
