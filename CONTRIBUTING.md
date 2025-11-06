@@ -86,7 +86,7 @@ This helps you categorize the issue type before submitting and helps maintainers
 
 4. **Mark as ready for review** when your changes are complete:
    - Click "Ready for review" on your GitHub PR
-   - This triggers automated testing
+   - **Automated testing** will be triggered when a maintainer adds the `under-review` label (to conserve CI resources)
 
 ### Testing
 
@@ -106,7 +106,7 @@ pytest tests/
 2. **PR Checklist**:
    - ✅ All tests pass locally
    - ✅ **Automated testing passes**:
-     - Ready PRs → `dev`: Core tests run on multiple Python versions (draft PRs skip automated tests)
+     - Ready PRs → `dev`: Core tests run on multiple Python versions (requires `under-review` label from maintainer to trigger)
      - `dev` → `main`: Full test suite + linting + security + build checks
    - ✅ **Data validation passes** (if contributing CSV data files)
    - ✅ New features include tests

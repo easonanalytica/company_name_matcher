@@ -2,7 +2,7 @@ name: Test PR to Dev
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
     branches: [dev]
     paths-ignore:
       - '*.md'
@@ -12,8 +12,8 @@ on:
 
 jobs:
   test:
-    # run for ready PRs to dev (excluding dev→dev and draft PRs to avoid duplication)
-    if: github.event.pull_request.head.ref != 'dev' && !github.event.pull_request.draft
+    # run only when PR has 'under-review' label (maintainer-controlled CI to save resources)
+    if: github.event.pull_request.head.ref != 'dev' && !github.event.pull_request.draft && contains(github.event.pull_request.labels.*.name, 'under-review')
     runs-on: ubuntu-latest
     strategy:
       matrix:
