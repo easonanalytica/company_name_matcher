@@ -11,6 +11,7 @@ Thank you for your interest in contributing to Company Name Matcher! This docume
   - [Testing](#testing)
   - [Pull Request Process](#pull-request-process)
 - [Data Contributions](#data-contributions)
+- [Contribution Workflow Overview](#contribution-workflow-overview)
 
 ## Getting Started
 
@@ -27,6 +28,8 @@ Thank you for your interest in contributing to Company Name Matcher! This docume
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    pip install -r requirements.txt
    pip install -e .
+   # Optional: Install test dependencies if you want to run tests
+   pip install -e ".[test]"
    ```
 
 3. **Verify setup**:
@@ -42,6 +45,7 @@ This helps you categorize the issue type before submitting and helps maintainers
 
 **Issue categories:**
 - **`bug`**: Something isn't working
+- **`data`**: Data-related issues or contributions
 - **`maintenance`**: Code cleanup, refactoring, or technical debt
 - **`enhancement`**: New feature or request
 - **`documentation`**: Improvements or additions to documentation
@@ -65,6 +69,7 @@ This helps you categorize the issue type before submitting and helps maintainers
 
    **Recommended branch naming conventions** (based on issue labels):
    - `bug` → `fix/` (e.g., `fix/memory-leak`)
+   - `data` → `data/` (e.g., `data/add-us-company-names`)
    - `enhancement` → `feature/` (e.g., `feature/add-caching`)
    - `documentation` → `docs/` (e.g., `docs/update-readme`)
    - `maintenance` → `chore/` (e.g., `chore/clean-api`)
@@ -79,6 +84,10 @@ This helps you categorize the issue type before submitting and helps maintainers
    ```bash
    git push origin feature/your-feature-name
    ```
+
+4. **Mark as ready for review** when your changes are complete:
+   - Click "Ready for review" on your GitHub PR
+   - **Automated testing** will be triggered when a maintainer adds the `under-review` label (to conserve CI resources)
 
 ### Testing
 
@@ -96,7 +105,11 @@ pytest tests/
 1. **Open a pull request** against the `dev` branch (not `main`)
 
 2. **PR Checklist**:
-   - ✅ All tests pass
+   - ✅ All tests pass locally
+   - ✅ **Automated testing passes**:
+     - Ready PRs → `dev`: Core tests run on multiple Python versions (requires `under-review` label from maintainer to trigger)
+     - `dev` → `main`: Full test suite + linting + security + build checks
+   - ✅ **Data validation passes** (if contributing CSV data files, requires `under-review` label from maintainer to trigger)
    - ✅ New features include tests
    - ✅ Documentation updated (if applicable)
    - ✅ Clear description of changes
@@ -107,23 +120,58 @@ pytest tests/
 
 5. **Release Process**: When ready for release, maintainers will:
    - Create a PR from `dev` to `main`
+   - **Automated testing** will run on multiple Python versions (3.9-3.12)
+   - **Automated data validation** will check all CSV files for duplicates and integrity
    - After merging to `main`, changes are automatically synced back to `dev`
    - This keeps both branches in sync and eliminates manual merge commits
 
 ## Data Contributions
 
-We welcome contributions of training data to improve model accuracy, especially for multilingual company name matching! For detailed instructions, see the [Data Contribution Guide](data/README.md).
+We welcome contributions of training data to improve model accuracy! Help us build better company name matching by contributing name variations and contrastive examples.
 
-**Quick summary:**
-1. Create a CSV file with columns: `canonical_name,variation,country_code,source` (source is optional but recommended)
-2. Name it using the pattern `{country_code}_{index}.csv` (e.g., `US_001.csv`, `KR_002.csv`)
-3. Submit via pull request targeting the `dev` branch
+**📖 [Complete Data Contribution Guide](data/README.md)**
 
-Contributing data is a great way to help improve the model without writing code!
+**Quick start:**
+- Choose type: `data/positive/` (name variations) or `data/negative/` (contrastive pairs)
+- Follow the detailed format guidelines in the README
+- **Validate locally**: `python scripts/validate_data.py --file your_file.csv`
+- Submit via pull request targeting the `dev` branch
+
+Contributing data is a great way to help improve the model without writing code! 🎯
 
 ---
 
 **Questions?** Check existing [issues](https://github.com/easonanalytica/company_name_matcher/issues) or open a new one.
+
+## 🔄 **Contribution Workflow Overview**
+
+```mermaid
+graph TD
+    A[Contributor] --> B[Create PR to dev branch]
+    B --> C{Maintainer adds 'under-review' label}
+    C --> D[CI runs automatically]
+    D --> E{Feedback Needed?}
+    E -->|Yes| F[Contributor fixes issues]
+    F --> D
+    E -->|No| G[Maintainer reviews & approves]
+    G --> H[Merge to dev]
+
+    H --> I[Dev branch updated]
+    I --> J{Maintainer creates<br/>dev → main PR}
+    J --> K[Full validation runs<br/>tests + lint + security + build]
+    K --> L[Merge to main]
+    L --> M[Auto-sync main → dev]
+    M --> N[Release Published]
+    N --> O[Auto-publish to PyPI]
+```
+
+
+**Key Points:**
+- All PRs target `dev` branch (not `main`)
+- `under-review` label required for CI to run
+- Unified CI workflow handles both code testing and data validation
+- Full testing suite runs for dev→main releases
+- Automatic branch syncing keeps everything in sync
 
 Thank you for contributing! 🎉
 
