@@ -11,6 +11,7 @@ Thank you for your interest in contributing to Company Name Matcher! This docume
   - [Testing](#testing)
   - [Pull Request Process](#pull-request-process)
 - [Data Contributions](#data-contributions)
+- [Contribution Workflow Overview](#contribution-workflow-overview)
 
 ## Getting Started
 
@@ -108,7 +109,7 @@ pytest tests/
    - ✅ **Automated testing passes**:
      - Ready PRs → `dev`: Core tests run on multiple Python versions (requires `under-review` label from maintainer to trigger)
      - `dev` → `main`: Full test suite + linting + security + build checks
-   - ✅ **Data validation passes** (if contributing CSV data files)
+   - ✅ **Data validation passes** (if contributing CSV data files, requires `under-review` label from maintainer to trigger)
    - ✅ New features include tests
    - ✅ Documentation updated (if applicable)
    - ✅ Clear description of changes
@@ -126,42 +127,51 @@ pytest tests/
 
 ## Data Contributions
 
-We welcome contributions of training data to improve model accuracy! We accept both positive examples (name variations for same company) and negative examples (contrastive pairs for different companies).
+We welcome contributions of training data to improve model accuracy! Help us build better company name matching by contributing name variations and contrastive examples.
 
-**Data Types:**
-- **Positive Examples**: Name variations representing the same legal entity
-- **Negative Examples**: Pairs that may seem similar but are different companies
+**📖 [Complete Data Contribution Guide](data/README.md)**
 
-For detailed instructions, see the [Data Contribution Guide](data/README.md).
+**Quick start:**
+- Choose type: `data/positive/` (name variations) or `data/negative/` (contrastive pairs)
+- Follow the detailed format guidelines in the README
+- **Validate locally**: `python scripts/validate_data.py --file your_file.csv`
+- Submit via pull request targeting the `dev` branch
 
-**Quick summary:**
-1. Choose type: `data/positive/` (same company) or `data/negative/` (different companies)
-2. Create CSV following the format in the respective README
-3. **Validate locally**: Run `python scripts/validate_data.py --file your_file.csv`
-4. Submit via pull request targeting the `dev` branch
-
-**Data Validation:**
-Before submitting, please validate your CSV files:
-```bash
-# Validate a single file
-python scripts/validate_data.py --file data/positive/your_file.csv
-
-# Validate all data files
-python scripts/validate_data.py --all
-```
-
-The validation checks for:
-- Correct CSV format and UTF-8 encoding
-- Required columns and valid data
-- Duplicate entries (within file and across repository)
-- Business logic compliance
-- Valid country codes
-
-Contributing data is a great way to help improve the model without writing code!
+Contributing data is a great way to help improve the model without writing code! 🎯
 
 ---
 
 **Questions?** Check existing [issues](https://github.com/easonanalytica/company_name_matcher/issues) or open a new one.
+
+## 🔄 **Contribution Workflow Overview**
+
+```mermaid
+graph TD
+    A[Contributor] --> B[Create PR to dev branch]
+    B --> C{Maintainer adds 'under-review' label}
+    C --> D[CI runs automatically]
+    D --> E{Feedback Needed?}
+    E -->|Yes| F[Contributor fixes issues]
+    F --> D
+    E -->|No| G[Maintainer reviews & approves]
+    G --> H[Merge to dev]
+
+    H --> I[Dev branch updated]
+    I --> J{Maintainer creates<br/>dev → main PR}
+    J --> K[Full validation runs<br/>tests + lint + security + build]
+    K --> L[Merge to main]
+    L --> M[Auto-sync main → dev]
+    M --> N[Release Published]
+    N --> O[Auto-publish to PyPI]
+```
+
+
+**Key Points:**
+- All PRs target `dev` branch (not `main`)
+- `under-review` label required for CI to run
+- Unified CI workflow handles both code testing and data validation
+- Full testing suite runs for dev→main releases
+- Automatic branch syncing keeps everything in sync
 
 Thank you for contributing! 🎉
 
