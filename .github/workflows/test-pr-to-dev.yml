@@ -12,7 +12,7 @@ on:
 
 jobs:
   test:
-    # Run for ready PRs to dev (excluding dev→dev and draft PRs to avoid duplication)
+    # run for ready PRs to dev (excluding dev→dev and draft PRs to avoid duplication)
     if: github.event.pull_request.head.ref != 'dev' && !github.event.pull_request.draft
     runs-on: ubuntu-latest
     strategy:
