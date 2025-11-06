@@ -33,6 +33,7 @@ def test_companies():
         "Cisco Systems",
     ]
 
+
 def test_find_matches_single_company(default_matcher, test_companies, tmp_path):
     # Build index
     index_dir = tmp_path / "test_batch_index"
@@ -72,6 +73,7 @@ def test_find_matches_multiple_companies(default_matcher, test_companies, tmp_pa
         for match in result
     ), "Each match should be a (company, score) tuple"
 
+
 def test_batch_processing_performance(default_matcher, tmp_path):
     # Generate a larger set of test companies
     large_company_set = [f"Company {i}" for i in range(100)]
@@ -106,8 +108,8 @@ def test_batch_processing_performance(default_matcher, tmp_path):
 
     # Check that results are similar (may not be identical due to floating point differences)
     for seq_matches, par_matches in zip(sequential_results, parallel_results):
-        assert (
-            len(seq_matches) == len(par_matches)
+        assert len(seq_matches) == len(
+            par_matches
         ), "Number of matches should be the same"
 
         # Check companies match (order might differ slightly)
@@ -120,6 +122,7 @@ def test_batch_processing_performance(default_matcher, tmp_path):
     print(f"Sequential processing time: {sequential_time:.4f}s")
     print(f"Parallel processing time: {parallel_time:.4f}s")
     print(f"Speedup: {sequential_time/parallel_time:.2f}x")
+
 
 def test_batch_find_matches_backward_compatibility(
     default_matcher, test_companies, tmp_path
@@ -142,8 +145,8 @@ def test_batch_find_matches_backward_compatibility(
 
     # Check that results are identical
     for new_matches, old_matches in zip(new_results, old_results):
-        assert (
-            len(new_matches) == len(old_matches)
+        assert len(new_matches) == len(
+            old_matches
         ), "Number of matches should be the same"
 
         for new_match, old_match in zip(new_matches, old_matches):
@@ -181,4 +184,4 @@ def test_n_jobs_parameter(default_matcher, test_companies, tmp_path):
 
         assert (
             companies_1 == companies_2 == companies_neg
-        ), f"Same companies should be matched for query {queries[i]}" 
+        ), f"Same companies should be matched for query {queries[i]}"

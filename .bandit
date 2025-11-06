@@ -1,3 +1,10 @@
-[bandit]
-exclude_dirs = ["tests", ".git", "__pycache__", "build", "dist", ".eggs"]
-skips = ["B101"]  # Skip assert_used checks in test files
+exclude_dirs:
+  - tests
+  - .git
+  - __pycache__
+  - build
+  - dist
+  - .eggs
+
+skips:
+  - B101  # Skip assert_used checks

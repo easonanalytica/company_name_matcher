@@ -16,6 +16,7 @@ def default_matcher():
         "paraphrase-multilingual-MiniLM-L12-v2", preprocess_fn=preprocess_name
     )
 
+
 def test_basic_company_comparison(default_matcher):
     test_cases = [
         ("Apple", "Microsoft Corporation", 0.34, 0.2),  # Expected low similarity
@@ -43,6 +44,7 @@ def test_multilingual_support(default_matcher):
         assert (
             abs(similarity - expected_score) < tolerance
         ), f"Multilingual similarity between {company1} and {company2} was {similarity}, expected around {expected_score}"
+
 
 def test_index_operations(default_matcher, tmp_path):
     # Test data
@@ -113,9 +115,7 @@ def test_index_expansion(default_matcher, tmp_path):
 
     # Test finding matches for both original and new companies
     for company in initial_companies + new_companies:
-        matches = default_matcher.find_matches(
-            company, threshold=0.9, use_approx=False
-        )
+        matches = default_matcher.find_matches(company, threshold=0.9, use_approx=False)
         assert len(matches) > 0, f"No matches found for {company}"
         assert company in [
             match[0] for match in matches

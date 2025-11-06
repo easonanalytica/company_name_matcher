@@ -48,6 +48,7 @@ def finetuned_matcher():
         "easonanalytica/cnm-multilingual-small-v2", preprocess_fn=preprocess_name
     )
 
+
 def test_model_comparison(
     test_data, rapid_fuzz_matcher, default_matcher, finetuned_matcher
 ):
@@ -142,4 +143,4 @@ def test_model_comparison(
 
         print(
             f"{name1[:38]:<40} {name2[:38]:<40} {actual:<8} {rapid_fuzz_score:.4f}    {default_score:.4f}    {finetuned_score:.4f}"
-        ) 
+        )
