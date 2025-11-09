@@ -37,6 +37,40 @@ Thank you for your interest in contributing to Company Name Matcher! This docume
    pytest tests/
    ```
 
+## Code Quality & Formatting
+
+This project uses **pre-commit hooks** to ensure consistent code quality and formatting:
+
+### Automatic Setup (Recommended)
+```bash
+# Install pre-commit hooks (one-time setup)
+pip install pre-commit
+pre-commit install
+
+# (Optional) Run on all files to check current state
+pre-commit run --all-files
+```
+
+### Manual Setup (Alternative)
+If you prefer not to use pre-commit hooks:
+```bash
+# Install formatting tools
+pip install black flake8 bandit
+
+# Format and check manually before committing
+black src/ tests/
+flake8 src/ tests/
+bandit -r src/ -c .bandit
+```
+
+### What Happens
+- **Pre-commit hooks** run automatically on `git commit`
+- **Black** reformats your code to match project standards
+- **Flake8** checks code style and complexity
+- **Bandit** scans for security issues
+
+If hooks fail, your commit is blocked until you fix the issues. This prevents CI failures and ensures consistent code quality!
+
 ## Reporting Issues
 
 **Include the category in your issue title** (e.g., `[bug] Memory leak in matcher`, `[docs] Clarify contribution guidelines`).
@@ -105,9 +139,10 @@ pytest tests/
 1. **Open a pull request** against the `dev` branch (not `main`)
 
 2. **PR Checklist**:
+   - ✅ **Code formatting** (handled automatically by pre-commit hooks)
    - ✅ All tests pass locally
    - ✅ **Automated testing passes**:
-     - Ready PRs → `dev`: Core tests run on multiple Python versions (requires `under-review` label from maintainer to trigger)
+     - Ready PRs → `dev`: Core tests + linting + security checks (requires `under-review` label from maintainer to trigger)
      - `dev` → `main`: Full test suite + linting + security + build checks
    - ✅ **Data validation passes** (if contributing CSV data files, requires `under-review` label from maintainer to trigger)
    - ✅ New features include tests
