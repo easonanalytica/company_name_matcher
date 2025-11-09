@@ -2,4 +2,4 @@
 from .company_name_matcher import CompanyNameMatcher
 from .vector_store import VectorStore
 
-__all__ = ['CompanyNameMatcher', 'VectorStore']
+__all__ = ["CompanyNameMatcher", "VectorStore"]

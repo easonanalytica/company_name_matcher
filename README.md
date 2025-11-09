@@ -12,6 +12,17 @@
 
 Company Name Matcher is a library for efficient matching of company names using vector search. It leverages a language model to generate embeddings specifically tailored for company names.
 
+## Why Company Name Matching?
+
+**Reconciliation is a universal task** in data-driven industries. Company names appear inconsistently across different sources - "Apple Inc", "Apple Incorporated", "苹果公司" might all refer to the same entity.
+
+**Key Use Cases:**
+- **📊 Big Data Analytics**: Unify company mentions across news, social media, and financial reports
+- **💼 Portfolio Analysis**: Match investment holdings against multiple data sources
+- **🔗 Supply Chain Analytics**: Track vendors and suppliers across procurement systems
+- **📈 Market Intelligence**: Aggregate company data from diverse sources for comprehensive analysis
+- **🏦 Financial Reporting**: Ensure consistent entity identification across regulatory filings
+
 ## Advantages over Traditional Methods
 
 While traditional string matching algorithms like those used in RapidFuzz are fast for small datasets, Company Name Matcher offers several advantages, especially when dealing with larger datasets:
@@ -110,39 +121,36 @@ embeddings = matcher.get_embeddings(["Microsoft", "Google"])
 print(f"Embeddings shape: {embeddings.shape}")
 ```
 
-## 📊 Performance Considerations
 
-1. For small datasets (<10,000 companies), use exact matching (`use_approx=False`)
-2. For large datasets, use approximate matching (`use_approx=True`) with appropriate `n_clusters`
-3. When using approximate matching:
-   - Build the index once and save it to disk
-   - Load the index for subsequent uses
-   - Adjust `n_clusters` based on your dataset size and speed/accuracy requirements
+## 🤖 Fine-tune Your Model
 
+As PoC, we provide a complementary fine-tuned model on [Hugging Face](https://huggingface.co/easonanalytica/cnm-multilingual-small-v2). See a demo [here](https://github.com/easonanalytica/company_name_matcher/blob/main/demo.ipynb).
 
-## 🤖 (Complementary) fine-tuned model
-
-While you can load your own model into CompanyNameMatcher, we provide our complementary fine-tuned model avaliable for download [here](https://drive.google.com/file/d/1QPB83GKp8nvZXAI77CsShpS_WkKc5gB5/view?usp=sharing) on Google Drive. See demo [here](https://github.com/easonanalytica/company_name_matcher/blob/main/demo.ipynb).
-
-1. **Fine-tuned Embeddings**: We use a lightweight multilingual sentence transformer model fine-tuned specifically for company names. This model was trained using contrastive learning, minimizing the cosine distance between similar company names.
+1. **Fine-tuned Embeddings**: We used a lightweight multilingual sentence transformer model fine-tuned specifically for company names. This model was trained using contrastive learning, minimizing the cosine distance between similar company names.
 
 2. **Special Tokens**: During the training process, we added special tokens **$** to the training data. These tokens guide the model's understanding, explicitly informing it that it's embedding company names. This results in more accurate and context-aware embeddings.
 
 3. **Cosine Similarity**: We use cosine similarity to compare the resulting embeddings, providing a robust measure of similarity that works well with high-dimensional data.
 
-### V1 Performance Comparison
+## 📊 Performance Comparison
 
-Here's a comparison of different matching approaches on our test dataset:
+| Model            | Accuracy | Precision | Recall | F1 Score |
+|------------------|----------|-----------|--------|----------|
+| Fine-tuned Matcher | 0.724   | 0.974    | 0.521 | 0.679   |
+| Default Matcher    | 0.685   | 0.861    | 0.521 | 0.649   |
+| RapidFuzz         | 0.614   | 1.000    | 0.310 | 0.473   |
 
-| Metric        | Fine-tuned Matcher | Default Matcher | RapidFuzz |
-|---------------|--------------------|--------------------|-----------|
-| Accuracy      | 0.910              | 0.780              | 0.690     |
-| Precision     | 0.918              | 0.719              | 0.807     |
-| Recall        | 0.900              | 0.920              | 0.500     |
-| F1 Score      | 0.909              | 0.807              | 0.617     |
+**Based on evaluation of hard test data** (`tests/test_data.csv`) containing company name pairs in English, Chinese (中文), Japanese (日本語), Korean (한국어). Decision threshold: 0.7 for all three.
 
-While RapidFuzz is faster, Company Name Matcher provides better accuracy and scalability (as the lists for matching increase in size, we can use k-means approximated matching).
+*Note: Performance metrics may vary based on your specific use case and data distribution.*
 
+
+## 🤝 Contributing
+
+We welcome contributions! Whether you're improving code, adding training data, or reporting issues:
+
+- **Code contributions**: See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines
+- **Bug reports & feature requests**: Open an issue on GitHub
 
 ## 📝 License
 
