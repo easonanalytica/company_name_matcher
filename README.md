@@ -124,7 +124,7 @@ print(f"Embeddings shape: {embeddings.shape}")
 
 ## 🤖 Fine-tune Your Model
 
-As PoC, we provide a complementary fine-tuned model on [Hugging Face](https://huggingface.co/easonanalytica/cnm-multilingual-small-v2). See a demo [here](https://github.com/easonanalytica/company_name_matcher/blob/main/demo.ipynb).
+As PoC, we provide a complementary fine-tuned model on [Hugging Face](https://huggingface.co/easonanalytica/cnm-multilingual-small-v2). See a demo [here](demo.ipynb).
 
 1. **Fine-tuned Embeddings**: We used a lightweight multilingual sentence transformer model fine-tuned specifically for company names. This model was trained using contrastive learning, minimizing the cosine distance between similar company names.
 
