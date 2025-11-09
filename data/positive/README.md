@@ -64,6 +64,6 @@ canonical_name,variation,country_code,source
 
 1. Create CSV file following the format above
 2. Place in `data/positive/` directory
-3. Submit PR to `dev` branch (see `../../CONTRIBUTING.md`)
+3. Submit PR to `dev` branch (see [CONTRIBUTING.md](../../CONTRIBUTING.md))
 
 **Thank you for helping improve company name matching!** 🎯

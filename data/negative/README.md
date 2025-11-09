@@ -93,6 +93,6 @@ canonical_name_x,canonical_name_y,country_code_x,country_code_y,remark
 
 1. Create CSV file following the format above
 2. Place in `data/negative/` directory
-3. Submit PR to `dev` branch (see `../../CONTRIBUTING.md`)
+3. Submit PR to `dev` branch (see [CONTRIBUTING.md](../../CONTRIBUTING.md))
 
 **Thank you for helping improve company name matching!** 🎯
