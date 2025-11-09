@@ -21,7 +21,7 @@ Pairs of `canonical_name` (official registered legal entity name) and `variation
 **Columns**:
 - `canonical_name` *(required)*: Official registered legal entity name
 - `variation` *(required)*: Alternative name/abbreviation/variation
-- `country_code` *(required)*: Two-letter ISO country code (see `../_reference/countrycode.csv`)
+- `country_code` *(required)*: Two-letter ISO country code (see [countrycode.csv](../_reference/countrycode.csv))
 - `source` *(optional)*: Data source
 
 **Rules**:
@@ -64,6 +64,6 @@ canonical_name,variation,country_code,source
 
 1. Create CSV file following the format above
 2. Place in `data/positive/` directory
-3. Submit PR to `dev` branch (see `../../CONTRIBUTING.md`)
+3. Submit PR to `dev` branch (see [CONTRIBUTING.md](../../CONTRIBUTING.md))
 
 **Thank you for helping improve company name matching!** 🎯

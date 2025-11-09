@@ -95,7 +95,7 @@ canonical_name,variation,country_code,source
 ## File Requirements
 
 - UTF-8 encoding
-- Valid country codes (check `_reference/countrycode.csv`, ISO2 column)
+- Valid country codes (check [countrycode.csv](../_reference/countrycode.csv), `ISO2` column)
 - No duplicate pairs within the same file
 - One pair per row
 
