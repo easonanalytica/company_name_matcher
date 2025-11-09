@@ -29,6 +29,7 @@ test = [
     "pandas>=2.0.0",
     "pytest>=8.0.0",
     "rapidfuzz>=3.0.0",
+    "polars>=1.0.0",
 ]
 
 [project.urls]
