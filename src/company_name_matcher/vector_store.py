@@ -23,7 +23,7 @@ class VectorStore:
             )
             self.items = items
         self.kmeans = None
-        self.clusters: Optional[NDArray[np.signedinteger]]  = None
+        self.clusters: Optional[NDArray[np.int64]]  = None
         
     def build_index(self, n_clusters: int = 100, save_path: Optional[str] = None, overwrite: bool = True):
         """
@@ -151,7 +151,7 @@ class VectorStore:
         closest_clusters = np.argsort(distances)[:n_probe_clusters]
 
         # Collect all indices from the closest clusters
-        all_indices: NDArray[np.signedinteger] = np.concatenate([
+        all_indices: NDArray[np.int64] = np.concatenate([
             np.where(self.clusters == cluster)[0] for cluster in closest_clusters
         ])
                 
@@ -206,7 +206,7 @@ class VectorStore:
             # Predict clusters for new items
             new_clusters = self.kmeans.predict(normalized_embeddings)
             assert self.clusters is not None, "clusters should not be None here"
-            self.clusters = np.concatenate([self.clusters.astype(np.signedinteger), new_clusters])
+            self.clusters = np.concatenate([self.clusters.astype(np.int64), new_clusters])
         
         # Save updated index if save_dir is provided
         if save_dir:
