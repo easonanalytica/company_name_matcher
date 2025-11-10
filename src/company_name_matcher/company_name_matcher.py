@@ -17,7 +17,15 @@ class CompanyNameMatcher:
         self,
         model_path: str = "models/fine_tuned_model",
         preprocess_fn: Optional[Callable[[str], str]] = None,
-        stopwords: List[str] = ["inc", "corp", "corporation", "llc", "ltd", "limited", "company"],
+        stopwords: List[str] = [
+            "inc",
+            "corp",
+            "corporation",
+            "llc",
+            "ltd",
+            "limited",
+            "company",
+        ],
         use_cache: bool = True,
         cache_size: int = 1000,
     ):
@@ -83,7 +91,12 @@ class CompanyNameMatcher:
         embedding_b = self.get_embedding(company_b)
         return self._cosine_similarity(embedding_a, embedding_b)[0][0]
 
-    def build_index(self, company_list: List[str], n_clusters: int = 100, save_dir: Optional[str] = None):
+    def build_index(
+        self,
+        company_list: List[str],
+        n_clusters: int = 100,
+        save_dir: Optional[str] = None,
+    ):
         """
         Build search index for the company list
 
@@ -172,10 +185,10 @@ class CompanyNameMatcher:
             )
 
     def _find_matches_single(
-        self, 
-        target_embedding: NDArray[np.floating], 
-        threshold: float, 
-        k: int, 
+        self,
+        target_embedding: NDArray[np.floating],
+        threshold: float,
+        k: int,
         use_approx: bool,
         n_probe_clusters: int = 1,
     ) -> List[Tuple[str, float]]:
@@ -199,7 +212,9 @@ class CompanyNameMatcher:
         else:
             # Use exact search with the stored embeddings
             assert self.vector_store is not None, "vector_store is not initialised yet"
-            similarities = self._cosine_similarity(target_embedding.reshape(1, -1), self.vector_store.embeddings)
+            similarities = self._cosine_similarity(
+                target_embedding.reshape(1, -1), self.vector_store.embeddings
+            )
             similarities = similarities.flatten().tolist()
 
             # Get all matches above threshold
@@ -223,12 +238,12 @@ class CompanyNameMatcher:
     ) -> List[List[Tuple[str, float]]]:
         """Process multiple companies in batches sequentially."""
         results: List[List[Tuple[str, float]]] = []
-        
+
         # Process in batches
         for i in range(0, len(target_companies), batch_size):
             batch = target_companies[i : i + batch_size]
             batch_embeddings = self.get_embeddings(batch)
-            
+
             batch_results: List[List[Tuple[str, float]]] = []
             for embedding in batch_embeddings:
                 matches = self._find_matches_single(
@@ -237,7 +252,7 @@ class CompanyNameMatcher:
                 batch_results.append(matches)
 
             results.extend(batch_results)
-        
+
         return results
 
     def _batch_find_matches_parallel(
@@ -308,12 +323,17 @@ class CompanyNameMatcher:
         Returns:
             List of match results for each target company
         """
-        return cast(List[List[Tuple[str, float]]], self.find_matches(
-            target_companies, threshold, k, use_approx, batch_size, n_jobs
-        ))
+        return cast(
+            List[List[Tuple[str, float]]],
+            self.find_matches(
+                target_companies, threshold, k, use_approx, batch_size, n_jobs
+            ),
+        )
 
     @staticmethod
-    def _cosine_similarity(a: NDArray[np.floating], b: NDArray[np.floating]) -> NDArray[np.floating]:
+    def _cosine_similarity(
+        a: NDArray[np.floating], b: NDArray[np.floating]
+    ) -> NDArray[np.floating]:
         """Calculate cosine similarity between two vectors or between a vector and a matrix."""
         logger.debug(f"Input shapes: a={a.shape}, b={b.shape}")
 

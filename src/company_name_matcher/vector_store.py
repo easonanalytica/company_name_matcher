@@ -23,9 +23,14 @@ class VectorStore:
             )
             self.items = items
         self.kmeans = None
-        self.clusters: Optional[NDArray[np.int64]]  = None
-        
-    def build_index(self, n_clusters: int = 100, save_path: Optional[str] = None, overwrite: bool = True):
+        self.clusters: Optional[NDArray[np.int64]] = None
+
+    def build_index(
+        self,
+        n_clusters: int = 100,
+        save_path: Optional[str] = None,
+        overwrite: bool = True,
+    ):
         """
         Build k-means clustering index for approximate search
 
@@ -115,7 +120,13 @@ class VectorStore:
         self.kmeans = data["kmeans"]
         self.clusters = data["clusters"]
 
-    def search(self, query_embedding: NDArray[np.floating], k: int = 5, use_approx: bool = False, n_probe_clusters: int = 3) -> List[Tuple[str, float]]:
+    def search(
+        self,
+        query_embedding: NDArray[np.floating],
+        k: int = 5,
+        use_approx: bool = False,
+        n_probe_clusters: int = 3,
+    ) -> List[Tuple[str, float]]:
         """
         Search for similar items using either exact or approximate k-means search
 
@@ -142,7 +153,7 @@ class VectorStore:
             )  # Ensure k is not larger than the number of items
             indices = np.argsort(similarities.flatten())[-k:][::-1]
             return [(self.items[i], float(similarities.flatten()[i])) for i in indices]
-        
+
         # Approximate search using k-means
         # Get distances to all cluster centers
         distances = self.kmeans.transform(query_embedding.reshape(1, -1))[0]
@@ -151,10 +162,10 @@ class VectorStore:
         closest_clusters = np.argsort(distances)[:n_probe_clusters]
 
         # Collect all indices from the closest clusters
-        all_indices: NDArray[np.int64] = np.concatenate([
-            np.where(self.clusters == cluster)[0] for cluster in closest_clusters
-        ])
-                
+        all_indices: NDArray[np.int64] = np.concatenate(
+            [np.where(self.clusters == cluster)[0] for cluster in closest_clusters]
+        )
+
         # If no indices found (shouldn't happen but just in case), fall back to exact search
         if len(all_indices) == 0:
             logger.warning(
@@ -171,18 +182,27 @@ class VectorStore:
         # Get top k results from the combined clusters
         k = min(k, len(all_indices))
         top_k_indices = np.argsort(cluster_similarities.flatten())[-k:][::-1]
-        
-        return [(self.items[all_indices[i]], 
-                float(cluster_similarities.flatten()[i])) 
-                for i in top_k_indices]
-    
+
+        return [
+            (self.items[all_indices[i]], float(cluster_similarities.flatten()[i]))
+            for i in top_k_indices
+        ]
+
     @staticmethod
-    def _cosine_similarity(a: NDArray[np.floating], b: NDArray[np.floating]) -> NDArray[np.floating]:
+    def _cosine_similarity(
+        a: NDArray[np.floating], b: NDArray[np.floating]
+    ) -> NDArray[np.floating]:
         """Calculate cosine similarity between normalized vectors"""
         # Since vectors are normalized, cosine similarity is just the dot product
         return np.dot(a, b.T)
 
-    def add_items(self, new_embeddings: NDArray[np.floating], new_items: List[str], save_dir: Optional[str] = None, overwrite: bool = True):
+    def add_items(
+        self,
+        new_embeddings: NDArray[np.floating],
+        new_items: List[str],
+        save_dir: Optional[str] = None,
+        overwrite: bool = True,
+    ):
         """
         Add new items to the existing index
 
@@ -206,8 +226,10 @@ class VectorStore:
             # Predict clusters for new items
             new_clusters = self.kmeans.predict(normalized_embeddings)
             assert self.clusters is not None, "clusters should not be None here"
-            self.clusters = np.concatenate([self.clusters.astype(np.int64), new_clusters])
-        
+            self.clusters = np.concatenate(
+                [self.clusters.astype(np.int64), new_clusters]
+            )
+
         # Save updated index if save_dir is provided
         if save_dir:
             self.save_index(save_dir, overwrite=overwrite)
