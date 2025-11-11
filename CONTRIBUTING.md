@@ -73,7 +73,7 @@ If hooks fail, your commit is blocked until you fix the issues. This prevents CI
 
 ## Reporting Issues
 
-**Include the category in your issue title** (e.g., `[bug] Memory leak in matcher`, `[docs] Clarify contribution guidelines`).
+**Include the category in your issue title** (e.g., `[bug] Memory leak in matcher`, `[documentation] Clarify contribution guidelines`).
 
 This helps you categorize the issue type before submitting and helps maintainers prioritize and label issues during triage.
 
