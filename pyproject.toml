@@ -30,6 +30,9 @@ test = [
     "pytest>=8.0.0",
     "rapidfuzz>=3.0.0",
     "polars>=1.0.0",
+    "black==23.12.1",
+    "flake8==7.0.0",
+    "bandit==1.7.6",
 ]
 
 [project.urls]
