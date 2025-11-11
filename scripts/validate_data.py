@@ -2,7 +2,7 @@
 """
 Data Validation Script for Company Name Matcher
 
-Validates CSV data contributions for:
+Validates parquet data contributions for:
 - Format consistency
 - Data integrity
 - Duplicate prevention
@@ -21,7 +21,7 @@ import re
 
 class EmptyFileError(Exception):
     """
-    Raised when a CSV file contains headers but has no data rows.
+    Raised when a parquet file contains headers but has no data rows.
     """
 
     pass
@@ -29,7 +29,7 @@ class EmptyFileError(Exception):
 
 class ValidationError(Exception):
     """
-    Raised when data validation fails for one or more CSV files.
+    Raised when data validation fails for one or more parquet files.
     Includes the offending Polars DataFrame in the exception message.
 
     Attributes:
@@ -56,7 +56,7 @@ class ValidationError(Exception):
 
 class FileNameError(Exception):
     """
-    Raised when a CSV file has an invalid filename according to
+    Raised when a parquet file has an invalid filename according to
     predefined naming conventions.
     """
 
@@ -65,18 +65,18 @@ class FileNameError(Exception):
 
 class DataValidator:
     """
-    Class responsible for validating CSV data contributions for the
+    Class responsible for validating parquet data contributions for the
     Company Name Matcher repository.
 
     Attributes:
         repo_root (Path): The root directory of the repository.
-        data_dir (Path): Directory containing all CSV data.
-        positive_dir (Path): Directory containing positive CSVs.
-        negative_dir (Path): Directory containing negative CSVs.
-        country_code_file (Path): CSV file containing valid ISO2 country codes.
+        data_dir (Path): Directory containing all parquet data.
+        positive_dir (Path): Directory containing positive parquets.
+        negative_dir (Path): Directory containing negative parquets.
+        country_code_file (Path): parquet file containing valid ISO2 country codes.
         country_codes (Set[str]): Set of valid country codes for validation.
-        positive_csvs (pl.LazyFrame): Combined lazy frame of all positive CSVs.
-        negative_csvs (pl.LazyFrame): Combined lazy frame of all negative CSVs.
+        positive_parquets (pl.LazyFrame): Combined lazy frame of all positive parquets.
+        negative_parquets (pl.LazyFrame): Combined lazy frame of all negative parquets.
     """
 
     def __init__(self, repo_root: Path) -> None:
@@ -90,16 +90,16 @@ class DataValidator:
         self.data_dir = self.repo_root / "data"
         self.positive_dir = self.data_dir / "positive"
         self.negative_dir = self.data_dir / "negative"
-        self.country_code_file = self.data_dir / "_reference" / "countrycode.csv"
+        self.country_code_file = self.data_dir / "_reference" / "countrycode.parquet"
 
         # Load country codes
         self.country_codes = self._load_country_codes()
 
-        # Scan positve CSVs
-        self.positive_csvs = self._scan_positive_csvs()
+        # Scan positve parquets
+        self.positive_parquets = self._scan_positive_parquets()
 
-        # Scan negative CSVs
-        self.negative_csvs = self._scan_negative_csvs()
+        # Scan negative parquets
+        self.negative_parquets = self._scan_negative_parquets()
 
     def _load_country_codes(self) -> Set[str]:
         """
@@ -112,24 +112,23 @@ class DataValidator:
         country_codes = set(country_codes["ISO2"].str.strip_chars().to_list())
         return country_codes
 
-    def _scan_positive_csvs(self) -> pl.LazyFrame:
+    def _scan_positive_parquets(self) -> pl.LazyFrame:
         """
-        Scan all positive CSV files into a combined LazyFrame.
+        Scan all positive parquet files into a combined LazyFrame.
 
         Returns:
-            pl.LazyFrame: Combined lazy frame of all positive CSVs.
+            pl.LazyFrame: Combined lazy frame of all positive parquets.
         """
-        # Get paths of CSVs
-        csv_paths = glob(str(self.positive_dir / "*.csv"))
+        # Get paths of parquets
+        parquet_paths = glob(str(self.positive_dir / "*.parquet"))
 
-        # Scan CSVs into lazyframes
-        csv_frames: List[pl.LazyFrame] = []
-        for f in csv_paths:
+        # Scan parquets into lazyframes
+        parquet_frames: List[pl.LazyFrame] = []
+        for f in parquet_paths:
             filename = Path(f).name
             try:
-                lf = pl.scan_csv(
+                lf = pl.scan_parquet(
                     f,
-                    encoding="utf8-lossy",
                     schema={
                         "canonical_name": pl.Utf8,
                         "variation": pl.Utf8,
@@ -142,7 +141,7 @@ class DataValidator:
                 if head.height == 0:
                     raise EmptyFileError(f"File {f} is empty (no rows).")
 
-                csv_frames.append(
+                parquet_frames.append(
                     lf.with_row_index(name="Row Number", offset=2).with_columns(
                         pl.lit(f"positive/{str(filename)}").alias("Filename")
                     )
@@ -152,27 +151,26 @@ class DataValidator:
                 raise SystemExit(f" Schema error in {f}: {e}")
 
         # Combine into one Lazyframe
-        positive_csv = pl.concat(csv_frames, how="vertical")
-        return positive_csv
+        positive_parquet = pl.concat(parquet_frames, how="vertical")
+        return positive_parquet
 
-    def _scan_negative_csvs(self) -> pl.LazyFrame:
+    def _scan_negative_parquets(self) -> pl.LazyFrame:
         """
-        Scan all negative CSV files into a combined LazyFrame.
+        Scan all negative parquet files into a combined LazyFrame.
 
         Returns:
-            pl.LazyFrame: Combined lazy frame of all negative CSVs.
+            pl.LazyFrame: Combined lazy frame of all negative parquets.
         """
-        # Get paths of CSVs
-        csv_paths = glob(str(self.negative_dir / "*.csv"))
+        # Get paths of parquets
+        parquet_paths = glob(str(self.negative_dir / "*.parquet"))
 
-        # Scan CSVs into lazyframes
-        csv_frames: List[pl.LazyFrame] = []
-        for f in csv_paths:
+        # Scan parquets into lazyframes
+        parquet_frames: List[pl.LazyFrame] = []
+        for f in parquet_paths:
             filename = Path(f).name
             try:
-                lf = pl.scan_csv(
+                lf = pl.scan_parquet(
                     f,
-                    encoding="utf8-lossy",
                     schema={
                         "canonical_name_x": pl.Utf8,
                         "canonical_name_y": pl.Utf8,
@@ -186,7 +184,7 @@ class DataValidator:
                 if head.height == 0:
                     raise EmptyFileError(f"File {f} is empty (no rows).")
 
-                csv_frames.append(
+                parquet_frames.append(
                     lf.with_row_index(name="Row Number", offset=2).with_columns(
                         pl.lit(f"negative/{str(filename)}").alias("Filename")
                     )
@@ -196,31 +194,9 @@ class DataValidator:
                 raise SystemExit(f" Schema error in {f}: {e}")
 
         # Combine into one Lazyframe
-        negative_csv = pl.concat(csv_frames, how="vertical")
-        return negative_csv
+        negative_parquet = pl.concat(parquet_frames, how="vertical")
+        return negative_parquet
 
-    def _unicode_check(self, lf: pl.LazyFrame) -> list[pl.Expr]:
-        """
-        Check all string columns in a LazyFrame for invalid UTF-8 characters.
-
-        Args:
-            lf (pl.LazyFrame): The LazyFrame to validate.
-
-        Returns:
-            list[pl.Expr]: List of expressions flagging invalid UTF-8 characters.
-        """
-        exprs: List[pl.Expr] = []
-        schema = lf.collect_schema()
-        for col in schema.names():
-            # Only run on Utf8 columns
-            if schema[col] == pl.Utf8:
-                exprs.append(
-                    pl.when(pl.col(col).str.contains("�"))
-                    .then(pl.lit(f"UnicodeError: {col} has an invalid UTF-8 character"))
-                    .otherwise(None)
-                    .alias(f"UnicodeError: {col}")
-                )
-        return exprs
 
     def _country_code_check(self, lf: pl.LazyFrame) -> list[pl.Expr]:
         """
@@ -360,17 +336,17 @@ class DataValidator:
 
     def _filename_check(self, data_dir: Path) -> None:
         """
-        Validate that all CSV filenames in a directory match the pattern '###.csv'.
+        Validate that all parquet filenames in a directory match the pattern '###.parquet'.
 
         Args:
-            data_dir (Path): Directory containing CSV files.
+            data_dir (Path): Directory containing parquet files.
 
         Raises:
-            FileNameError: If any CSV file does not match the naming pattern.
+            FileNameError: If any parquet file does not match the naming pattern.
         """
-        pattern = re.compile(r"^\d{3}\.csv")
+        pattern = re.compile(r"^\d{3}\.parquet$")
         bad_files: List[str] = []
-        for f in glob(str(data_dir / "*.csv")):
+        for f in glob(str(data_dir / "*.parquet")):
             filename = Path(f).name
             if not pattern.match(filename):
                 bad_files.append(f)
@@ -381,7 +357,7 @@ class DataValidator:
 
     def validate(self) -> None:
         """
-        Run full validation on all CSV data contributions.
+        Run full validation on all parquet data contributions.
 
         Performs:
         - Filename validation
@@ -399,15 +375,14 @@ class DataValidator:
         self._filename_check(self.positive_dir)
         self._filename_check(self.negative_dir)
 
-        positive = self._scan_positive_csvs()
-        negative = self._scan_negative_csvs()
+        positive = self.negative_parquets
+        negative = self.positive_parquets
 
         errors: List[pl.LazyFrame] = []
         for lf in [positive, negative]:
 
             all_checks: List[pl.Expr] = (
-                self._unicode_check(lf)
-                + self._country_code_check(lf)
+                self._country_code_check(lf)
                 + self._mandatory_col_check(lf)
                 + [self._difference_check(lf), self._duplication_check(lf)]
             )
