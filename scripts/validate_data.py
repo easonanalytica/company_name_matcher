@@ -57,7 +57,7 @@ class DataValidator:
         self.data_dir = self.repo_root / "data"
         self.positive_dir = self.data_dir / "positive"
         self.negative_dir = self.data_dir / "negative"
-        self.country_code_file = self.data_dir / "_reference" / "countrycode.parquet"
+        self.country_code_file = self.data_dir / "_reference" / "countrycode.csv"
 
         # Load country codes
         self.country_codes = self._load_country_codes()
