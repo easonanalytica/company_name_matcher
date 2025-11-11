@@ -103,6 +103,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
+        pip install polars
 
     - name: Validate data files
       run: |
@@ -117,7 +118,7 @@ jobs:
         echo "Validating changed CSV files: $CHANGED_FILES"
 
         # Run validation on all CSV files (not just changed ones, to catch duplicates)
-        python scripts/validate_data.py --all
+        python scripts/validate_data.py
 
     - name: Comment on PR
       if: failure()

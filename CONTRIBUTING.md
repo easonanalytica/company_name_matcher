@@ -169,7 +169,7 @@ We welcome contributions of training data to improve model accuracy! Help us bui
 **Quick start:**
 - Choose type: `data/positive/` (name variations) or `data/negative/` (contrastive pairs)
 - Follow the detailed format guidelines in the README
-- **Validate locally**: `python scripts/validate_data.py --file your_file.csv`
+- **Validate locally**: `python scripts/validate_data.py`
 - Submit via pull request targeting the `dev` branch
 
 Contributing data is a great way to help improve the model without writing code! 🎯
