@@ -52,11 +52,11 @@ class DataValidator:
             return country_codes
 
         try:
-            with open(country_file, 'r', encoding='utf-8') as f:
+            with open(country_file, "r", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
-                    if 'ISO2' in row:
-                        country_codes.add(row['ISO2'].strip().upper())
+                    if "ISO2" in row:
+                        country_codes.add(row["ISO2"].strip().upper())
         except Exception as e:
             print(f"Warning: Could not load country codes: {e}")
 
@@ -69,40 +69,46 @@ class DataValidator:
             if exclude_file and Path(csv_file) == exclude_file:
                 continue
             try:
-                with open(csv_file, 'r', encoding='utf-8') as f:
+                with open(csv_file, "r", encoding="utf-8") as f:
                     reader = csv.DictReader(f)
                     for row in reader:
-                        canonical = row.get('canonical_name', '').strip()
-                        variation = row.get('variation', '').strip()
-                        country = row.get('country_code', '').strip().upper()
+                        canonical = row.get("canonical_name", "").strip()
+                        variation = row.get("variation", "").strip()
+                        country = row.get("country_code", "").strip().upper()
                         if canonical and variation and country:
                             self.existing_positive.add((canonical, variation, country))
             except Exception as e:
-                print(f"Warning: Could not load existing positive data from {csv_file}: {e}")
+                print(
+                    f"Warning: Could not load existing positive data from {csv_file}: {e}"
+                )
 
         # Load negative data
         for csv_file in glob.glob(str(self.negative_dir / "*.csv")):
             if exclude_file and Path(csv_file) == exclude_file:
                 continue
             try:
-                with open(csv_file, 'r', encoding='utf-8') as f:
+                with open(csv_file, "r", encoding="utf-8") as f:
                     reader = csv.DictReader(f)
                     for row in reader:
-                        name_x = row.get('canonical_name_x', '').strip()
-                        name_y = row.get('canonical_name_y', '').strip()
-                        country_x = row.get('country_code_x', '').strip().upper()
-                        country_y = row.get('country_code_y', '').strip().upper()
+                        name_x = row.get("canonical_name_x", "").strip()
+                        name_y = row.get("canonical_name_y", "").strip()
+                        country_x = row.get("country_code_x", "").strip().upper()
+                        country_y = row.get("country_code_y", "").strip().upper()
                         if name_x and name_y and country_x and country_y:
-                            self.existing_negative.add((name_x, name_y, country_x, country_y))
+                            self.existing_negative.add(
+                                (name_x, name_y, country_x, country_y)
+                            )
             except Exception as e:
-                print(f"Warning: Could not load existing negative data from {csv_file}: {e}")
+                print(
+                    f"Warning: Could not load existing negative data from {csv_file}: {e}"
+                )
 
     def validate_positive_csv(self, file_path: Path) -> List[str]:
         """Validate a positive data CSV file."""
         errors = []
 
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 row_num = 1  # Start after header
 
@@ -110,10 +116,10 @@ class DataValidator:
                     row_num += 1
 
                     # Check required columns
-                    canonical = row.get('canonical_name', '').strip()
-                    variation = row.get('variation', '').strip()
-                    country = row.get('country_code', '').strip().upper()
-                    source = row.get('source', '').strip()
+                    canonical = row.get("canonical_name", "").strip()
+                    variation = row.get("variation", "").strip()
+                    country = row.get("country_code", "").strip().upper()
+                    source = row.get("source", "").strip()
 
                     if not canonical:
                         errors.append(f"Row {row_num}: Missing canonical_name")
@@ -127,15 +133,21 @@ class DataValidator:
 
                     # Business logic checks
                     if canonical == variation:
-                        errors.append(f"Row {row_num}: canonical_name and variation must be different")
+                        errors.append(
+                            f"Row {row_num}: canonical_name and variation must be different"
+                        )
 
                     if country not in self.country_codes:
-                        errors.append(f"Row {row_num}: Invalid country_code '{country}'")
+                        errors.append(
+                            f"Row {row_num}: Invalid country_code '{country}'"
+                        )
 
                     # Check for duplicates (including across existing files)
                     key = (canonical, variation, country)
                     if key in self.existing_positive:
-                        errors.append(f"Row {row_num}: Duplicate entry {key} already exists in repository")
+                        errors.append(
+                            f"Row {row_num}: Duplicate entry {key} already exists in repository"
+                        )
 
         except UnicodeDecodeError:
             errors.append("File encoding error: File must be UTF-8 encoded")
@@ -149,7 +161,7 @@ class DataValidator:
         errors = []
 
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 row_num = 1  # Start after header
 
@@ -157,11 +169,11 @@ class DataValidator:
                     row_num += 1
 
                     # Check required columns
-                    name_x = row.get('canonical_name_x', '').strip()
-                    name_y = row.get('canonical_name_y', '').strip()
-                    country_x = row.get('country_code_x', '').strip().upper()
-                    country_y = row.get('country_code_y', '').strip().upper()
-                    remark = row.get('remark', '').strip()
+                    name_x = row.get("canonical_name_x", "").strip()
+                    name_y = row.get("canonical_name_y", "").strip()
+                    country_x = row.get("country_code_x", "").strip().upper()
+                    country_y = row.get("country_code_y", "").strip().upper()
+                    remark = row.get("remark", "").strip()
 
                     if not name_x:
                         errors.append(f"Row {row_num}: Missing canonical_name_x")
@@ -178,23 +190,33 @@ class DataValidator:
 
                     # Business logic checks
                     if name_x == name_y:
-                        errors.append(f"Row {row_num}: canonical_name_x and canonical_name_y must be different")
+                        errors.append(
+                            f"Row {row_num}: canonical_name_x and canonical_name_y must be different"
+                        )
 
                     if country_x not in self.country_codes:
-                        errors.append(f"Row {row_num}: Invalid country_code_x '{country_x}'")
+                        errors.append(
+                            f"Row {row_num}: Invalid country_code_x '{country_x}'"
+                        )
 
                     if country_y not in self.country_codes:
-                        errors.append(f"Row {row_num}: Invalid country_code_y '{country_y}'")
+                        errors.append(
+                            f"Row {row_num}: Invalid country_code_y '{country_y}'"
+                        )
 
                     # Check for duplicates (including across existing files)
                     key = (name_x, name_y, country_x, country_y)
                     if key in self.existing_negative:
-                        errors.append(f"Row {row_num}: Duplicate entry {key} already exists in repository")
+                        errors.append(
+                            f"Row {row_num}: Duplicate entry {key} already exists in repository"
+                        )
 
                     # Also check reverse order (pairs should be unique regardless of order)
                     reverse_key = (name_y, name_x, country_y, country_x)
                     if reverse_key in self.existing_negative:
-                        errors.append(f"Row {row_num}: Reverse duplicate entry {reverse_key} already exists in repository")
+                        errors.append(
+                            f"Row {row_num}: Reverse duplicate entry {reverse_key} already exists in repository"
+                        )
 
         except UnicodeDecodeError:
             errors.append("File encoding error: File must be UTF-8 encoded")
@@ -272,7 +294,7 @@ class DataValidator:
         self.existing_negative.clear()
 
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 row_num = 1  # Start after header
                 seen_positive = set()
@@ -283,9 +305,9 @@ class DataValidator:
 
                     if file_path.parent == self.positive_dir:
                         # Validate positive data structure
-                        canonical = row.get('canonical_name', '').strip()
-                        variation = row.get('variation', '').strip()
-                        country = row.get('country_code', '').strip().upper()
+                        canonical = row.get("canonical_name", "").strip()
+                        variation = row.get("variation", "").strip()
+                        country = row.get("country_code", "").strip().upper()
 
                         if not canonical:
                             errors.append(f"Row {row_num}: Missing canonical_name")
@@ -299,10 +321,14 @@ class DataValidator:
 
                         # Business logic
                         if canonical == variation:
-                            errors.append(f"Row {row_num}: canonical_name and variation must be different")
+                            errors.append(
+                                f"Row {row_num}: canonical_name and variation must be different"
+                            )
 
                         if country not in self.country_codes:
-                            errors.append(f"Row {row_num}: Invalid country_code '{country}'")
+                            errors.append(
+                                f"Row {row_num}: Invalid country_code '{country}'"
+                            )
 
                         # Check for duplicates within this file
                         key = (canonical, variation, country)
@@ -312,10 +338,10 @@ class DataValidator:
 
                     elif file_path.parent == self.negative_dir:
                         # Validate negative data structure
-                        name_x = row.get('canonical_name_x', '').strip()
-                        name_y = row.get('canonical_name_y', '').strip()
-                        country_x = row.get('country_code_x', '').strip().upper()
-                        country_y = row.get('country_code_y', '').strip().upper()
+                        name_x = row.get("canonical_name_x", "").strip()
+                        name_y = row.get("canonical_name_y", "").strip()
+                        country_x = row.get("country_code_x", "").strip().upper()
+                        country_y = row.get("country_code_y", "").strip().upper()
 
                         if not name_x:
                             errors.append(f"Row {row_num}: Missing canonical_name_x")
@@ -332,13 +358,19 @@ class DataValidator:
 
                         # Business logic
                         if name_x == name_y:
-                            errors.append(f"Row {row_num}: canonical_name_x and canonical_name_y must be different")
+                            errors.append(
+                                f"Row {row_num}: canonical_name_x and canonical_name_y must be different"
+                            )
 
                         if country_x not in self.country_codes:
-                            errors.append(f"Row {row_num}: Invalid country_code_x '{country_x}'")
+                            errors.append(
+                                f"Row {row_num}: Invalid country_code_x '{country_x}'"
+                            )
 
                         if country_y not in self.country_codes:
-                            errors.append(f"Row {row_num}: Invalid country_code_y '{country_y}'")
+                            errors.append(
+                                f"Row {row_num}: Invalid country_code_y '{country_y}'"
+                            )
 
                         # Check for duplicates within this file
                         key = (name_x, name_y, country_x, country_y)
@@ -370,33 +402,42 @@ class DataValidator:
         # Collect all data
         for file_path in all_files:
             try:
-                with open(file_path, 'r', encoding='utf-8') as f:
+                with open(file_path, "r", encoding="utf-8") as f:
                     reader = csv.DictReader(f)
                     for row in reader:
                         if file_path.parent == self.positive_dir:
-                            canonical = row.get('canonical_name', '').strip()
-                            variation = row.get('variation', '').strip()
-                            country = row.get('country_code', '').strip().upper()
+                            canonical = row.get("canonical_name", "").strip()
+                            variation = row.get("variation", "").strip()
+                            country = row.get("country_code", "").strip().upper()
                             if canonical and variation and country:
                                 key = (canonical, variation, country)
                                 if key in all_positive_data:
-                                    print(f"❌ Cross-file duplicate found: {key} exists in multiple positive files")
+                                    print(
+                                        f"❌ Cross-file duplicate found: {key} exists in multiple positive files"
+                                    )
                                     no_duplicates = False
                                 all_positive_data.add(key)
                         elif file_path.parent == self.negative_dir:
-                            name_x = row.get('canonical_name_x', '').strip()
-                            name_y = row.get('canonical_name_y', '').strip()
-                            country_x = row.get('country_code_x', '').strip().upper()
-                            country_y = row.get('country_code_y', '').strip().upper()
+                            name_x = row.get("canonical_name_x", "").strip()
+                            name_y = row.get("canonical_name_y", "").strip()
+                            country_x = row.get("country_code_x", "").strip().upper()
+                            country_y = row.get("country_code_y", "").strip().upper()
                             if name_x and name_y and country_x and country_y:
                                 key = (name_x, name_y, country_x, country_y)
                                 reverse_key = (name_y, name_x, country_y, country_x)
-                                if key in all_negative_data or reverse_key in all_negative_data:
-                                    print(f"❌ Cross-file duplicate found: {key} exists in multiple negative files")
+                                if (
+                                    key in all_negative_data
+                                    or reverse_key in all_negative_data
+                                ):
+                                    print(
+                                        f"❌ Cross-file duplicate found: {key} exists in multiple negative files"
+                                    )
                                     no_duplicates = False
                                 all_negative_data.add(key)
             except Exception as e:
-                print(f"Warning: Could not read {file_path} for duplicate checking: {e}")
+                print(
+                    f"Warning: Could not read {file_path} for duplicate checking: {e}"
+                )
 
         if no_duplicates:
             print("✅ No cross-file duplicates found")
@@ -405,8 +446,10 @@ class DataValidator:
 
 def main():
     parser = argparse.ArgumentParser(description="Validate CSV data contributions")
-    parser.add_argument('--file', type=str, help='Validate a specific CSV file')
-    parser.add_argument('--all', action='store_true', help='Validate all CSV files in data/ directory')
+    parser.add_argument("--file", type=str, help="Validate a specific CSV file")
+    parser.add_argument(
+        "--all", action="store_true", help="Validate all CSV files in data/ directory"
+    )
 
     args = parser.parse_args()
 

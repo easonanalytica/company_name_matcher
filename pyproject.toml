@@ -38,3 +38,10 @@ Homepage = "https://github.com/easonanalytica/company_name_matcher"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"company_name_matcher" = ["py.typed"]
+
+[tool.mypy]
+mypy_path = "typings"
+ignore_missing_imports = true
