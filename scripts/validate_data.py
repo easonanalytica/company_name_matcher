@@ -67,7 +67,7 @@ class DataValidator:
         self.negative_parquets = self._scan_negative_parquets()
 
     def _load_country_codes(self) -> Set[str]:
-        country_codes = pl.read_parquet(self.country_code_file, columns=["ISO2"])
+        country_codes = pl.read_csv(self.country_code_file, columns=["ISO2"])
         return set(country_codes["ISO2"].str.strip_chars().to_list())
 
     def _country_code_validity_check(self, lf: pl.LazyFrame) -> List[pl.Expr]:
