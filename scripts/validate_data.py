@@ -29,9 +29,19 @@ class ValidationError(Exception):
     """
     Raised when data validation fails for one or more parquet files.
     Includes the offending Polars DataFrame in the exception message.
+
+    Attributes:
+        df (pl.DataFrame): The DataFrame that caused the validation error.
     """
 
     def __init__(self, message: str, df: pl.DataFrame):
+        """
+        Initialize ValidationError with a message and the offending DataFrame.
+
+        Args:
+            message (str): Description of the validation error.
+            df (pl.DataFrame): The DataFrame that failed validation.
+        """
         pl.Config.set_tbl_rows(df.height)
         pl.Config.set_tbl_width_chars(-1)
         pl.Config.set_fmt_str_lengths(1_000_000_000)
@@ -50,9 +60,22 @@ class DataValidator:
     """
     Class responsible for validating parquet data contributions for the
     Company Name Matcher repository.
+
+    Validations performed include:
+    - Mandatory column presence
+    - Country code validity
+    - Filename and country code consistency
+    - Duplicate detection
+    - Content differences between canonical names and variations
     """
 
     def __init__(self, repo_root: Path) -> None:
+        """
+        Initialize the DataValidator.
+
+        Args:
+            repo_root (Path): Root path of the repository containing the data directories.
+        """
         self.repo_root = Path(repo_root)
         self.data_dir = self.repo_root / "data"
         self.positive_dir = self.data_dir / "positive"
@@ -67,10 +90,25 @@ class DataValidator:
         self.negative_parquets = self._scan_negative_parquets()
 
     def _load_country_codes(self) -> Set[str]:
+        """
+        Load the list of valid ISO2 country codes from a reference CSV file.
+
+        Returns:
+            Set[str]: Set of valid country codes.
+        """
         country_codes = pl.read_csv(self.country_code_file, columns=["ISO2"])
         return set(country_codes["ISO2"].str.strip_chars().to_list())
 
     def _country_code_validity_check(self, lf: pl.LazyFrame) -> List[pl.Expr]:
+        """
+        Generate Polars expressions to check if country codes in the DataFrame are valid.
+
+        Args:
+            lf (pl.LazyFrame): The lazy DataFrame to validate.
+
+        Returns:
+            List[pl.Expr]: List of expressions producing error messages for invalid codes.
+        """
         exprs: List[pl.Expr] = []
         for col in lf.schema:
             if col.startswith("country_code"):
@@ -89,6 +127,17 @@ class DataValidator:
     def _country_code_filename_match_check(
         self, lf: pl.LazyFrame, filename: str, negative: bool = False
     ) -> List[pl.Expr]:
+        """
+        Generate expressions to check if country codes match the filename.
+
+        Args:
+            lf (pl.LazyFrame): Lazy DataFrame to validate.
+            filename (str): Name of the parquet file being checked.
+            negative (bool, optional): Whether the file is negative samples. Defaults to False.
+
+        Returns:
+            List[pl.Expr]: List of expressions producing filename mismatch errors.
+        """
         exprs: List[pl.Expr] = []
         base_name = Path(filename).stem
 
@@ -117,6 +166,12 @@ class DataValidator:
         return exprs
 
     def _scan_positive_parquets(self) -> pl.LazyFrame:
+        """
+        Scan all positive parquet files, validate structure, and attach initial error columns.
+
+        Returns:
+            pl.LazyFrame: Concatenated lazy frame of all positive parquet files.
+        """
         frames: List[pl.LazyFrame] = []
         for f in glob(str(self.positive_dir / "*.parquet")):
             filename = Path(f).name
@@ -144,6 +199,12 @@ class DataValidator:
         return pl.concat(frames, how="vertical")
 
     def _scan_negative_parquets(self) -> pl.LazyFrame:
+        """
+        Scan all negative parquet files, validate structure, and attach initial error columns.
+
+        Returns:
+            pl.LazyFrame: Concatenated lazy frame of all negative parquet files.
+        """
         frames: List[pl.LazyFrame] = []
         for f in glob(str(self.negative_dir / "*.parquet")):
             filename = Path(f).name
@@ -173,6 +234,15 @@ class DataValidator:
         return pl.concat(frames, how="vertical")
 
     def _mandatory_col_check(self, lf: pl.LazyFrame) -> List[pl.Expr]:
+        """
+        Create expressions to check mandatory columns for missing or empty values.
+
+        Args:
+            lf (pl.LazyFrame): Lazy frame to validate.
+
+        Returns:
+            List[pl.Expr]: List of error expressions for missing data.
+        """
         prefixes = ["canonical_name", "variation", "country_code"]
         exprs: List[pl.Expr] = []
         for col in lf.schema:
@@ -186,6 +256,15 @@ class DataValidator:
         return exprs
 
     def _duplication_check(self, lf: pl.LazyFrame) -> pl.Expr:
+        """
+        Create an expression to identify duplicate rows based on key columns.
+
+        Args:
+            lf (pl.LazyFrame): Lazy frame to check for duplicates.
+
+        Returns:
+            pl.Expr: Error expression for duplicate rows.
+        """
         prefixes = ["canonical_name", "variation", "country_code"]
         cols_to_check = [col for col in lf.schema if any(col.startswith(p) for p in prefixes)]
         return (
@@ -196,6 +275,15 @@ class DataValidator:
         )
 
     def _difference_check(self, lf: pl.LazyFrame) -> pl.Expr:
+        """
+        Create an expression to detect identical canonical and variation names.
+
+        Args:
+            lf (pl.LazyFrame): Lazy frame to check.
+
+        Returns:
+            pl.Expr: Error expression for duplicate names.
+        """
         prefixes = ["canonical_name", "variation"]
         cols = [col for col in lf.schema if any(col.startswith(p) for p in prefixes)]
         col1, col2 = cols[:2]
@@ -208,11 +296,30 @@ class DataValidator:
         )
 
     def _concatenate_errors(self, lf: pl.LazyFrame) -> pl.Expr:
+        """
+        Combine all individual error columns into a single 'Errors' column.
+
+        Args:
+            lf (pl.LazyFrame): Lazy frame containing error columns.
+
+        Returns:
+            pl.Expr: Expression concatenating all errors.
+        """
         error_cols = [c for c in lf.schema if "Error" in c]
         concat_expr = pl.concat_str([pl.col(c) for c in error_cols], separator="\n", ignore_nulls=True)
         return pl.when(concat_expr == "").then(None).otherwise(concat_expr).alias("Errors")
 
     def _filename_check(self, data_dir: Path, negative: bool = False) -> None:
+        """
+        Validate filenames against expected patterns for positive and negative datasets.
+
+        Args:
+            data_dir (Path): Directory containing parquet files.
+            negative (bool, optional): Flag for negative dataset filename pattern. Defaults to False.
+
+        Raises:
+            FileNameError: If any files do not match the expected naming conventions.
+        """
         pattern = re.compile(r"^[A-Z]{2}(_[A-Z]{2})?\.parquet$") if negative else re.compile(r"^[A-Z]{2}\.parquet$")
         bad_files: List[str] = []
         for f in glob(str(data_dir / "*.parquet")):
@@ -224,6 +331,20 @@ class DataValidator:
             raise FileNameError(f"Invalid filenames found:\n{formatted}")
 
     def validate(self) -> None:
+        """
+        Execute all validation checks on the dataset.
+
+        Checks performed:
+        - File naming conventions
+        - Mandatory columns
+        - Country code validity
+        - Filename-country code consistency
+        - Duplicate rows
+        - Canonical and variation name uniqueness
+
+        Raises:
+            ValidationError: If any data validation errors are found.
+        """
         # Check filenames
         self._filename_check(self.positive_dir)
         self._filename_check(self.negative_dir, negative=True)
