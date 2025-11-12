@@ -14,9 +14,9 @@ Pairs of `canonical_name` (official registered legal entity name) and `variation
 - **Stock Tickers**: "Apple Inc" → "AAPL", "Alphabet Inc" → "GOOGL"
 - **Historical Names**: "Apple Inc" → "Apple Computer Inc"
 
-## 📋 CSV Format
+## 📋 Parquet Format
 
-**Filename**: `{index}.csv` (e.g., `001.csv`, `002.csv`)
+**Filename**: `{country_code}.parquet` (e.g., `US.parquet`, `CN.parquet`, `TW.parquet`)
 
 **Columns**:
 - `canonical_name` *(required)*: Official registered legal entity name
@@ -28,12 +28,12 @@ Pairs of `canonical_name` (official registered legal entity name) and `variation
 - One variation per row
 - `canonical_name` ≠ `variation` (must be different)
 - Both represent the **same legal entity**
-- UTF-8 encoding
- - Not included: related-but-different entities (parent/subsidiary, sister companies)
+- Apache Parquet format with zstd compression
+- Not included: related-but-different entities (parent/subsidiary, sister companies)
 
 ## 📊 Examples
 
-**US Companies** (`001.csv`):
+**US Companies** (`US.parquet`):
 ```csv
 canonical_name,variation,country_code,source
 "Apple Inc","Apple","US","SEC EDGAR"
@@ -43,7 +43,7 @@ canonical_name,variation,country_code,source
 "Alphabet Inc","Google","US","common usage"
 ```
 
-**Chinese Companies** (`002.csv`):
+**Chinese Companies** (`CN.parquet`):
 ```csv
 canonical_name,variation,country_code,source
 "苹果电脑贸易（上海）有限公司","Apple Computer Trading Shanghai","CN","english translation"
@@ -52,18 +52,18 @@ canonical_name,variation,country_code,source
 "阿里巴巴集团控股有限公司","BABA","CN","stock ticker"
 ```
 
-**Korean Companies** (`003.csv`):
+**Taiwanese Companies** (`TW.parquet`):
 ```csv
 canonical_name,variation,country_code,source
-"삼성전자주식회사","Samsung Electronics","KR","english translation"
-"삼성전자주식회사","삼성전자","KR","common usage"
-"현대자동차주식회사","Hyundai Motor Company","KR","english translation"
+"台灣積體電路製造股份有限公司","Taiwan Semiconductor Manufacturing Company","TW","english translation"
+"台灣積體電路製造股份有限公司","台積電","TW","common usage"
+"鴻海精密工業股份有限公司","Foxconn Technology Group","TW","english translation"
 ```
 
 ## 🤝 How to Contribute
 
-1. Create CSV file following the format above
-2. Place in `data/positive/` directory
+1. Create Parquet file following the format above (use zstd compression)
+2. Place in `data/positive/` directory with `{country_code}.parquet` naming
 3. Submit PR to `dev` branch (see [CONTRIBUTING.md](../../CONTRIBUTING.md))
 
 **Thank you for helping improve company name matching!** 🎯

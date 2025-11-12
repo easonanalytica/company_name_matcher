@@ -27,10 +27,10 @@ To achieve this, we use **contrastive learning** with two types of examples:
 data/
 ├── positive/           # Name variations for same company
 │   ├── README.md      # Guidelines for positive examples
-│   └── *.csv          # Country-specific positive examples
+│   └── *.parquet      # Country-specific positive examples (e.g., US.parquet, CN.parquet)
 ├── negative/           # Contrastive examples (different companies)
 │   ├── README.md      # Guidelines for negative examples
-│   └── *.csv          # Negative example pairs
+│   └── *.parquet      # Negative example pairs (e.g., CN_US.parquet, US_US.parquet)
 └── _reference/         # Supporting data
     └── countrycode.csv # ISO country codes
 ```
@@ -41,8 +41,8 @@ data/
 **For Negative Examples**: See [`negative/README.md`](negative/README.md)
 
 **Submit Your Contribution**:
-1. Create CSV following the appropriate format
-2. Place in correct folder (`positive/` or `negative/`)
+1. Create Parquet file following the appropriate format (use zstd compression)
+2. Place in correct folder (`positive/` or `negative/`) with proper naming convention
 3. Submit PR to `dev` branch
 
 ---
@@ -94,7 +94,7 @@ canonical_name,variation,country_code,source
 
 ## File Requirements
 
-- UTF-8 encoding
+- Apache Parquet format with zstd compression
 - Valid country codes (check [countrycode.csv](../_reference/countrycode.csv), `ISO2` column)
 - No duplicate pairs within the same file
 - One pair per row

@@ -19,9 +19,9 @@ These related entities should naturally score in the middle range (0.5-0.8), not
 
 **Note**: Negative examples can be derived from positive examples across **unrelated** `canonical_name` entries.
 
-## 📋 CSV Format
+## 📋 Parquet Format
 
-**Filename**: `{index}.csv` (e.g., `001.csv`, `002.csv`)
+**Filename**: `{country_code_x}_{country_code_y}.parquet` (country codes sorted alphabetically, e.g., `CN_US.parquet`, `US_US.parquet`, `JP_KR.parquet`)
 
 **Columns**:
 - `canonical_name_x` *(required)*: Official legal entity name (first company)
@@ -34,40 +34,44 @@ These related entities should naturally score in the middle range (0.5-0.8), not
 - One negative pair per row
 - Both must be **different legal entities**
 - Use canonical legal entity names (same as positive examples)
-- UTF-8 encoding
+- Apache Parquet format with zstd compression
+- Country codes in filename must be sorted alphabetically (CN_US.parquet, not US_CN.parquet)
 
 ## 📊 Examples
 
-**Industry Competitors** (`001.csv`):
+**Industry Competitors** (`KR_KR.parquet`):
 ```csv
 canonical_name_x,canonical_name_y,country_code_x,country_code_y,remark
 "Samsung Electronics Co., Ltd.","LG Electronics Inc.","KR","KR","direct competitors in consumer electronics"
-"Toyota Motor Corporation","Honda Motor Co., Ltd.","JP","JP","major Japanese automakers"
-"Coca-Cola Company","PepsiCo Inc.","US","US","direct competitors in beverage industry"
-"Nike Inc","Adidas AG","US","DE","athletic footwear competitors"
 ```
 
-**Contextual Similarities** (`002.csv`):
+**Contextual Similarities** (`DE_US.parquet`):
 ```csv
 canonical_name_x,canonical_name_y,country_code_x,country_code_y,remark
-"Apple Inc","Adidas AG","US","DE","both consumer brands, frequently co-mentioned"
+"Adidas AG","Nike Inc","DE","US","athletic footwear competitors"
+"Adidas AG","Apple Inc","DE","US","both consumer brands, frequently co-mentioned"
+```
+
+**Similar Naming Patterns** (`FR_US.parquet`):
+```csv
+canonical_name_x,canonical_name_y,country_code_x,country_code_y,remark
+"Orange SA","Orange Inc","FR","US","same brand name, different companies"
+```
+
+**US-US Competitors** (`US_US.parquet`):
+```csv
+canonical_name_x,canonical_name_y,country_code_x,country_code_y,remark
+"Coca-Cola Company","PepsiCo Inc.","US","US","direct competitors in beverage industry"
 "Alphabet Inc","Meta Platforms Inc","US","US","both tech giants, frequently co-mentioned"
 "Starbucks Corporation","McDonald's Corporation","US","US","both restaurant chains"
-"Nike Inc","Adidas AG","US","DE","athletic footwear competitors"
-```
-
-**Similar Naming Patterns** (`003.csv`):
-```csv
-canonical_name_x,canonical_name_y,country_code_x,country_code_y,remark
 "Capital One Financial Corporation","Capital Group Companies Inc","US","US","similar naming pattern, different companies"
-"Orange SA","Orange Inc","FR","US","same brand name, different companies"
 ```
 
 ## 🔍 Deriving from Positive Examples
 
 You can create negative pairs by taking canonical names from **unrelated** positive example entries:
 
-**From positive examples**:
+**From positive examples** (across different .parquet files):
 ```csv
 canonical_name,variation,country_code,source
 "Apple Inc","Apple","US","SEC EDGAR"
@@ -76,11 +80,11 @@ canonical_name,variation,country_code,source
 "LG Electronics Inc.","LG전자","KR","company website"
 ```
 
-**Create negative pairs** (only unrelated companies):
+**Create negative pairs** (only unrelated companies, save to `KR_US.parquet`):
 ```csv
 canonical_name_x,canonical_name_y,country_code_x,country_code_y,remark
-"Apple Inc","Microsoft Corporation","US","US","unrelated tech companies"
-"Samsung Electronics Co., Ltd.","LG Electronics Inc.","KR","KR","unrelated competitors"
+"Apple Inc","Samsung Electronics Co., Ltd.","US","KR","unrelated companies"
+"Microsoft Corporation","LG Electronics Inc.","US","KR","unrelated companies"
 ```
 
 **Do NOT create** (related companies in same group):
@@ -91,8 +95,8 @@ canonical_name_x,canonical_name_y,country_code_x,country_code_y,remark
 
 ## 🤝 How to Contribute
 
-1. Create CSV file following the format above
-2. Place in `data/negative/` directory
+1. Create Parquet file following the format above (use zstd compression)
+2. Place in `data/negative/` directory with `{country_code_x}_{country_code_y}.parquet` naming (country codes sorted alphabetically)
 3. Submit PR to `dev` branch (see [CONTRIBUTING.md](../../CONTRIBUTING.md))
 
 **Thank you for helping improve company name matching!** 🎯
