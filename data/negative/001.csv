@@ -1,11 +1,3 @@
-canonical_name_x,canonical_name_y,country_code_x,country_code_y,remark
-"Apple Inc","Microsoft Corporation","US","US","major tech companies, direct competitors"
-"Amazon.com Inc","Walmart Inc","US","US","retail giants, direct competitors in e-commerce and physical stores"
-"The Coca-Cola Company","PepsiCo Inc","US","US","beverage industry leaders, direct competitors"
-"Alphabet Inc","Meta Platforms Inc","US","US","tech giants in search and social media, frequently co-mentioned"
-"JPMorgan Chase & Co","Bank of America Corporation","US","US","largest US banks, direct competitors"
-"Johnson & Johnson","Pfizer Inc","US","US","pharmaceutical and consumer health companies"
-"Exxon Mobil Corporation","Chevron Corporation","US","US","major oil and gas companies, direct competitors"
-"The Procter & Gamble Company","Kimberly-Clark Corporation","US","US","consumer goods companies, household products"
-"Berkshire Hathaway Inc","Goldman Sachs Group Inc","US","US","investment and financial services companies"
-"Visa Inc","Mastercard Incorporated","US","US","credit card payment networks, direct competitors"
+version https://git-lfs.github.com/spec/v1
+oid sha256:9bbe1e2faae6d500b040b242a86caadc9b449ee9d475c6f043ed14b80fba3c9b
+size 1100
