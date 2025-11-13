@@ -73,14 +73,14 @@ canonical_name,variation,country_code,source
 ```csv
 canonical_name_x,canonical_name_y,country_code_x,country_code_y,remark
 "Apple Inc","Microsoft Corporation","US","US","unrelated tech companies"
-"Samsung Electronics Co., Ltd.","LG Electronics Inc.","KR","KR","competitors"
+"삼성전자주식회사","엘지전자 주식회사","KR","KR","competitors"
 "Apple Inc","Orange SA","US","FR","unrelated companies with similar naming theme"
 ```
 
 ⚠️ **NOT for negatives** (related entities — let model learn natural similarity):
 ```csv
 "Apple Inc","苹果电脑贸易（上海）有限公司","US","CN"  ← Related: same corporate group
-"Samsung Electronics Co., Ltd.","Samsung Heavy Industries Co., Ltd.","KR","KR"  ← Related: same corporate group
+"삼성전자주식회사","삼성중공업 주식회사","KR","KR"  ← Related: same corporate group
 ```
 
 ❌ **Incorrect** (mixing legal entities):

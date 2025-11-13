@@ -6,14 +6,14 @@ Negative examples are pairs of **canonical legal entity names** that represent *
 
 Pairs of `canonical_name_x` and `canonical_name_y` representing **unrelated companies**. These help the model distinguish between:
 
-- **Industry Competitors**: "Samsung Electronics Co., Ltd." vs "LG Electronics Inc." (unrelated competitors)
+- **Industry Competitors**: "삼성전자주식회사" vs "엘지전자 주식회사" (unrelated competitors)
 - **Contextually Similar**: "Apple Inc" vs "Adidas AG" (both consumer brands, frequently co-mentioned)
 - **Similar Naming**: "Capital One Financial Corporation" vs "Capital Group Companies Inc" (similar names, unrelated)
 
 ⚠️ **IMPORTANT — Do NOT Include**:
 - **Same corporate group**: "Apple Inc" vs "苹果（中国）有限公司" (different legal entities, but same group)
 - **Parent/subsidiary**: "Alphabet Inc" vs "Google LLC"
-- **Sister companies**: "Samsung Electronics" vs "Samsung Heavy Industries"
+- **Sister companies**: "삼성전자주식회사" vs "삼성중공업 주식회사"
 
 These related entities should naturally score in the middle range (0.5-0.8), not as negatives (0.0). Labeling them 0 would incorrectly train the model to push them apart.
 
@@ -42,7 +42,7 @@ These related entities should naturally score in the middle range (0.5-0.8), not
 **Industry Competitors** (`KR_KR.parquet`):
 ```csv
 canonical_name_x,canonical_name_y,country_code_x,country_code_y,remark
-"Samsung Electronics Co., Ltd.","LG Electronics Inc.","KR","KR","direct competitors in consumer electronics"
+"삼성전자주식회사","엘지전자 주식회사","KR","KR","direct competitors in consumer electronics"
 ```
 
 **Contextual Similarities** (`DE_US.parquet`):
@@ -55,7 +55,7 @@ canonical_name_x,canonical_name_y,country_code_x,country_code_y,remark
 **Similar Naming Patterns** (`FR_US.parquet`):
 ```csv
 canonical_name_x,canonical_name_y,country_code_x,country_code_y,remark
-"Orange SA","Orange Inc","FR","US","same brand name, different companies"
+"Orange SA","Orange Inc","FR","US","same brand name, completely different companies"
 ```
 
 **US-US Competitors** (`US_US.parquet`):
@@ -76,21 +76,21 @@ You can create negative pairs by taking canonical names from **unrelated** posit
 canonical_name,variation,country_code,source
 "Apple Inc","Apple","US","SEC EDGAR"
 "Microsoft Corporation","Microsoft","US","SEC EDGAR"
-"Samsung Electronics Co., Ltd.","삼성전자","KR","company website"
-"LG Electronics Inc.","LG전자","KR","company website"
+"삼성전자주식회사","삼성전자","KR","company website"
+"엘지전자 주식회사","LG전자","KR","company website"
 ```
 
 **Create negative pairs** (only unrelated companies, save to `KR_US.parquet`):
 ```csv
 canonical_name_x,canonical_name_y,country_code_x,country_code_y,remark
-"Apple Inc","Samsung Electronics Co., Ltd.","US","KR","unrelated companies"
-"Microsoft Corporation","LG Electronics Inc.","US","KR","unrelated companies"
+"삼성전자주식회사","Apple Inc","KR","US","unrelated companies"
+"엘지전자 주식회사","Microsoft Corporation","KR","US","unrelated companies"
 ```
 
 **Do NOT create** (related companies in same group):
 ```csv
 "Apple Inc","苹果电脑贸易（上海）有限公司","US","CN"  ← Same corporate group
-"Samsung Electronics Co., Ltd.","Samsung Heavy Industries Co., Ltd.","KR","KR"  ← Same corporate group
+"삼성전자주식회사","삼성중공업 주식회사","KR","KR"  ← Same corporate group
 ```
 
 ## 🤝 How to Contribute
