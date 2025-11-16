@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Data Validation Script for Company Name Matcher
 
@@ -16,6 +15,7 @@ from glob import glob
 from pathlib import Path
 from typing import Set, List
 import polars as pl
+from polars.type_aliases import SchemaDict
 import re
 
 
@@ -110,7 +110,8 @@ class DataValidator:
             List[pl.Expr]: List of expressions producing error messages for invalid codes.
         """
         exprs: List[pl.Expr] = []
-        for col in lf.schema:
+        schema = lf.collect_schema()
+        for col in schema:
             if col.startswith("country_code"):
                 exprs.append(
                     pl.when(pl.col(col).is_in(self.country_codes))
@@ -173,16 +174,17 @@ class DataValidator:
             pl.LazyFrame: Concatenated lazy frame of all positive parquet files.
         """
         frames: List[pl.LazyFrame] = []
-        for f in glob(str(self.positive_dir / "*.parquet")):
-            filename = Path(f).name
-            lf = pl.scan_parquet(
-                f,
-                schema={
+        schema: SchemaDict={
                     "canonical_name": pl.Utf8,
                     "variation": pl.Utf8,
                     "country_code": pl.Utf8,
                     "source": pl.Utf8,
-                },
+                }
+        for f in glob(str(self.positive_dir / "*.parquet")):
+            filename = Path(f).name
+            lf = pl.scan_parquet(
+                f,
+                schema=schema,
             )
             if lf.head(1).collect().height == 0:
                 raise EmptyFileError(f"File {f} is empty (no rows).")
@@ -206,17 +208,18 @@ class DataValidator:
             pl.LazyFrame: Concatenated lazy frame of all negative parquet files.
         """
         frames: List[pl.LazyFrame] = []
+        schema: SchemaDict = {
+            "canonical_name_x": pl.Utf8,
+            "canonical_name_y": pl.Utf8,
+            "country_code_x": pl.Utf8,
+            "country_code_y": pl.Utf8,
+            "remark": pl.Utf8,
+        }
         for f in glob(str(self.negative_dir / "*.parquet")):
             filename = Path(f).name
             lf = pl.scan_parquet(
                 f,
-                schema={
-                    "canonical_name_x": pl.Utf8,
-                    "canonical_name_y": pl.Utf8,
-                    "country_code_x": pl.Utf8,
-                    "country_code_y": pl.Utf8,
-                    "remark": pl.Utf8,
-                },
+                schema=schema,
             )
             if lf.head(1).collect().height == 0:
                 raise EmptyFileError(f"File {f} is empty (no rows).")
@@ -245,7 +248,8 @@ class DataValidator:
         """
         prefixes = ["canonical_name", "variation", "country_code"]
         exprs: List[pl.Expr] = []
-        for col in lf.schema:
+        schema = lf.collect_schema()
+        for col in schema:
             if any(col.startswith(p) for p in prefixes):
                 exprs.append(
                     pl.when(pl.col(col).is_null() | (pl.col(col).str.strip_chars() == ""))
@@ -265,8 +269,9 @@ class DataValidator:
         Returns:
             pl.Expr: Error expression for duplicate rows.
         """
+        schema = lf.collect_schema()
         prefixes = ["canonical_name", "variation", "country_code"]
-        cols_to_check = [col for col in lf.schema if any(col.startswith(p) for p in prefixes)]
+        cols_to_check = [col for col in schema if any(col.startswith(p) for p in prefixes)]
         return (
             pl.when(pl.struct(cols_to_check).is_duplicated())
             .then(pl.lit("DuplicateRowError: duplicate row found"))
@@ -284,8 +289,9 @@ class DataValidator:
         Returns:
             pl.Expr: Error expression for duplicate names.
         """
+        schema = lf.collect_schema()
         prefixes = ["canonical_name", "variation"]
-        cols = [col for col in lf.schema if any(col.startswith(p) for p in prefixes)]
+        cols = [col for col in schema if any(col.startswith(p) for p in prefixes)]
         col1, col2 = cols[:2]
         return (
             pl.when(
@@ -305,7 +311,8 @@ class DataValidator:
         Returns:
             pl.Expr: Expression concatenating all errors.
         """
-        error_cols = [c for c in lf.schema if "Error" in c]
+        schema = lf.collect_schema()
+        error_cols = [c for c in schema if "Error" in c]
         concat_expr = pl.concat_str([pl.col(c) for c in error_cols], separator="\n", ignore_nulls=True)
         return pl.when(concat_expr == "").then(None).otherwise(concat_expr).alias("Errors")
 
