@@ -178,7 +178,7 @@ Contributing data is a great way to help improve the model without writing code!
 
 **Questions?** Check existing [issues](https://github.com/easonanalytica/company_name_matcher/issues) or open a new one.
 
-## 🔄 **Contribution Workflow Overview**
+## **Contribution Workflow Overview**
 
 ```mermaid
 graph TD
