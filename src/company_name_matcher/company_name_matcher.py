@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class CompanyNameMatcher:
     def __init__(
         self,
-        model_path: str = "easonanalytica/cnm-multilingual-small-v",
+        model_path: str = "easonanalytica/cnm-multilingual-small-v2",
         preprocess_fn: Optional[Callable[[str], str]] = None,
         stopwords: List[str] = [
             "inc",
