@@ -95,7 +95,7 @@ canonical_name,variation,country_code,source
 ## File Requirements
 
 - Apache Parquet format with zstd compression
-- Valid country codes (check [countrycode.csv](../_reference/countrycode.csv), `ISO2` column)
+- Valid country codes (check [countrycode.csv](_reference/countrycode.csv), `ISO2` column)
 - No duplicate pairs within the same file
 - One pair per row
 
