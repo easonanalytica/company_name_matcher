@@ -15,7 +15,6 @@ from glob import glob
 from pathlib import Path
 from typing import Set, List
 import polars as pl
-from polars.type_aliases import SchemaDict
 import re
 
 
@@ -174,17 +173,16 @@ class DataValidator:
             pl.LazyFrame: Concatenated lazy frame of all positive parquet files.
         """
         frames: List[pl.LazyFrame] = []
-        schema: SchemaDict={
-                    "canonical_name": pl.Utf8,
-                    "variation": pl.Utf8,
-                    "country_code": pl.Utf8,
-                    "source": pl.Utf8,
-                }
         for f in glob(str(self.positive_dir / "*.parquet")):
             filename = Path(f).name
             lf = pl.scan_parquet(
                 f,
-                schema=schema,
+                schema={
+                    "canonical_name": pl.Utf8,
+                    "variation": pl.Utf8,
+                    "country_code": pl.Utf8,
+                    "source": pl.Utf8,
+                },
             )
             if lf.head(1).collect().height == 0:
                 raise EmptyFileError(f"File {f} is empty (no rows).")
@@ -208,18 +206,17 @@ class DataValidator:
             pl.LazyFrame: Concatenated lazy frame of all negative parquet files.
         """
         frames: List[pl.LazyFrame] = []
-        schema: SchemaDict = {
+        for f in glob(str(self.negative_dir / "*.parquet")):
+            filename = Path(f).name
+            lf = pl.scan_parquet(
+                f,
+                schema={
             "canonical_name_x": pl.Utf8,
             "canonical_name_y": pl.Utf8,
             "country_code_x": pl.Utf8,
             "country_code_y": pl.Utf8,
             "remark": pl.Utf8,
-        }
-        for f in glob(str(self.negative_dir / "*.parquet")):
-            filename = Path(f).name
-            lf = pl.scan_parquet(
-                f,
-                schema=schema,
+        },
             )
             if lf.head(1).collect().height == 0:
                 raise EmptyFileError(f"File {f} is empty (no rows).")
