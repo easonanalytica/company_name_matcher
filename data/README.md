@@ -26,11 +26,11 @@ To achieve this, we use **contrastive learning** with two types of examples:
 ```
 data/
 ├── positive/           # Name variations for same company
-│   ├── README.md      # Guidelines for positive examples
-│   └── *.csv          # Country-specific positive examples
+│   ├── README.md       # Guidelines for positive examples
+│   └── *.parquet       # Country-specific positive examples
 ├── negative/           # Contrastive examples (different companies)
-│   ├── README.md      # Guidelines for negative examples
-│   └── *.csv          # Negative example pairs
+│   ├── README.md       # Guidelines for negative examples
+│   └── *.parquet       # Negative example pairs
 └── _reference/         # Supporting data
     └── countrycode.csv # ISO country codes
 ```
@@ -62,33 +62,49 @@ Multinational corporations have separate legal entities in each country:
 ### Correct Usage Examples
 
 ✅ **Positive Examples** (same legal entity):
-```csv
-canonical_name,variation,country_code,source
-"Apple Inc","Apple","US","SEC EDGAR"
-"Apple Inc","AAPL","US","stock ticker"
-"苹果电脑贸易（上海）有限公司","Apple Computer Trading Shanghai","CN","company registry"
-```
+
+1. [`US.parquet`](positive/US.parquet)
+
+    |canonical_name|variation|country_code|source|
+    |--------------|---------|------------|------|
+    |Apple Inc|Apple|US|SEC EDGAR|
+    |Apple Inc|AAPL|US|stock ticker|
+
+2. [`CN.parquet`](positive/CN.parquet)
+
+    |canonical_name|variation|country_code|source|
+    |--------------|---------|------------|------|
+    |苹果电脑贸易（上海）有限公司|Apple Computer Trading Shanghai|CN|company registry|
+
 
 ✅ **Negative Examples** (unrelated companies):
-```csv
-canonical_name_x,canonical_name_y,country_code_x,country_code_y,remark
-"Apple Inc","Microsoft Corporation","US","US","unrelated tech companies"
-"Samsung Electronics Co., Ltd.","LG Electronics Inc.","KR","KR","competitors"
-"Apple Inc","Orange SA","US","FR","unrelated companies with similar naming theme"
-```
+
+1. [`US_US.parquet`](negative/US_US.parquet)
+
+    |canonical_name_x|canonical_name_y|country_code_x|country_code_y|remark|
+    |----------------|----------------|--------------|--------------|------|
+    |Apple Inc|Microsoft Corporation|US|US|unrelated tech companies|
+
+2. [`FR_US.parquet`](negative/FR_US.parquet)
+
+    |canonical_name_x|canonical_name_y|country_code_x|country_code_y|remark|
+    |----------------|----------------|--------------|--------------|------|
+    |Orange S.A.|Apple Inc|FR|US|unrelated companies with similar naming theme|
 
 ⚠️ **NOT for negatives** (related entities — let model learn natural similarity):
-```csv
-"Apple Inc","苹果电脑贸易（上海）有限公司","US","CN"  ← Related: same corporate group
-"Samsung Electronics Co., Ltd.","Samsung Heavy Industries Co., Ltd.","KR","KR"  ← Related: same corporate group
-```
+
+|canonical_name_x|canonical_name_y|country_code_x|country_code_y|remark|
+|----------------|----------------|--------------|--------------|------|
+|Apple Inc|苹果电脑贸易（上海）有限公司|US|CN|Related: same corporate group|
+|Samsung Electronics Co., Ltd.|Samsung Heavy Industries Co., Ltd.|KR|KR|Related: same corporate group, also legal name in official registered language not used|
+
 
 ❌ **Incorrect** (mixing legal entities):
-```csv
-canonical_name,variation,country_code,source
-"Apple","Apple Inc","US","SEC EDGAR"  ← Wrong: "Apple" is not a legal entity name
-"Apple","苹果电脑贸易（上海）有限公司","CN","company registry"  ← Wrong: mixing different legal entities
-```
+
+|canonical_name|variation|country_code|source|
+|--------------|---------|------------|------|
+|Apple|Apple Inc|US|Wrong: "Apple" is not a legal entity name|
+|Apple|苹果电脑贸易（上海）有限公司|CN|Wrong: mixing different legal entities|
 
 ---
 
@@ -107,7 +123,27 @@ Use publicly available data from:
 - Business directories
 - Stock exchanges
 
----
+## Data Validation
+
+To make sure that contributions match the given rules, a [validation script](../scripts/validate_data.py) is used.
+
+To check contributions before submitting, run:
+
+```bash
+python scripts/validate_data.py
+```
+If all validations pass, you will see the following message:
+```bash
+No data errors. Safe to contribute
+```
+
+Otherwise you will get an error message with one of the following errors:
+    - `EmptyFileError`: Raised when a parquet file contains headers but has no data rows.
+    - `ValidationError`: Raised when data validation fails for one or more parquet files.
+    - `FileNameError`: Raised when a parquet file has an invalid filename according to predefined naming conventions.
+
+A CI job is used to validate contributions when submitting a PR, The PR will be merged only if all validation checks pass.
+
 
 ## Questions?
 
