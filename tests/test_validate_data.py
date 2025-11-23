@@ -48,10 +48,10 @@ def dummy_positive(root: Path) -> Path:
     """Placeholder valid positive parquet."""
     df = pl.DataFrame(
         {
-            "canonical_name": [],
-            "variation": [],
-            "country_code": [],
-            "source": [],
+            "canonical_name": ["ABC Limited"],
+            "variation": ["ABC"],
+            "country_code": ["ZZ"],
+            "source": ["Test"],
         }
     )
     return write_positive_parquet(root, "ZZ.parquet", df)
@@ -61,11 +61,11 @@ def dummy_negative(root: Path) -> Path:
     """Placeholder valid negative parquet."""
     df = pl.DataFrame(
         {
-            "canonical_name_x": [],
-            "canonical_name_y": [],
-            "country_code_x": [],
-            "country_code_y": [],
-            "remark": [],
+            "canonical_name_x": ["AA Corp"],
+            "canonical_name_y": ["BB LLC"],
+            "country_code_x": ["AA"],
+            "country_code_y": ["BB"],
+            "remark": ["Test"],
         }
     )
     return write_negative_parquet(root, "AA_BB.parquet", df)
@@ -248,7 +248,7 @@ def test_concatenate_errors(tmp_path: Path) -> None:
     validator = DataValidator(tmp_path)
 
     df = pl.DataFrame(
-        {"Err1": [None, "X"], "Err2": ["A", None], "canonical_name": ["a", "b"]}
+        {"Error1": [None, "X"], "Error2": ["A", None], "canonical_name": ["a", "b"]}
     )
     lf = df.lazy()
 
@@ -289,18 +289,17 @@ def test_filename_check_negative_fail(tmp_path: Path) -> None:
     bad = tmp_path / "data" / "negative" / "BADNAME.parquet"
     df = pl.DataFrame(
         {
-            "canonical_name_x": [],
-            "canonical_name_y": [],
-            "country_code_x": [],
-            "country_code_y": [],
-            "remark": [],
+            "canonical_name_x": ["A Corp"],
+            "canonical_name_y": ["B LLC"],
+            "country_code_x": ["AA"],
+            "country_code_y": ["BB"],
+            "remark": ["different entities"],
         }
     )
     df.write_parquet(bad)
 
-    validator = DataValidator(tmp_path)
-
     with pytest.raises(FileNameError):
+        validator = DataValidator(tmp_path)
         validator._filename_check(tmp_path / "data" / "negative", negative=True) # type: ignore
 
 
