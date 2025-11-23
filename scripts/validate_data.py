@@ -149,6 +149,8 @@ class DataValidator:
                 .alias("CountryCodeError: filename_mismatch")
             )
         else:
+            if "_" not in base_name:
+                raise FileNameError(f"Negative filename {filename} does not contain an underscore separator.")
             expected = sorted(base_name.split("_"))
             exprs.append(
                 pl.when(pl.col("country_code_x") == expected[0])
