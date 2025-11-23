@@ -36,7 +36,8 @@ These related entities should naturally score in the middle range (0.5-0.8), not
 - One negative pair per row
 - Both must be **different legal entities**
 - Use canonical legal entity names (same as positive examples)
-- UTF-8 encoding
+- Apache Parquet format with zstd compression
+- Country codes in filename must be sorted alphabetically (CN_US.parquet, not US_CN.parquet)
 
 ## 📊 Examples
 

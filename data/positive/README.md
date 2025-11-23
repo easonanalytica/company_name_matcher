@@ -28,8 +28,8 @@ Pairs of `canonical_name` (official registered legal entity name) and `variation
 - One variation per row
 - `canonical_name` ≠ `variation` (must be different)
 - Both represent the **same legal entity**
-- UTF-8 encoding
- - Not included: related-but-different entities (parent/subsidiary, sister companies)
+- Apache Parquet format with zstd compression
+- Not included: related-but-different entities (parent/subsidiary, sister companies)
 
 ## 📊 Examples
 

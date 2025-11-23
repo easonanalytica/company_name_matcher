@@ -41,8 +41,8 @@ data/
 **For Negative Examples**: See [`negative/README.md`](negative/README.md)
 
 **Submit Your Contribution**:
-1. Create CSV following the appropriate format
-2. Place in correct folder (`positive/` or `negative/`)
+1. Create Parquet file following the appropriate format (use zstd compression)
+2. Place in correct folder (`positive/` or `negative/`) with proper naming convention
 3. Submit PR to `dev` branch
 
 ---
@@ -110,8 +110,8 @@ Multinational corporations have separate legal entities in each country:
 
 ## File Requirements
 
-- UTF-8 encoding
-- Valid country codes (check [countrycode.csv](../_reference/countrycode.csv), `ISO2` column)
+- Apache Parquet format with zstd compression
+- Valid country codes (check [countrycode.csv](_reference/countrycode.csv), `ISO2` column)
 - No duplicate pairs within the same file
 - One pair per row
 
