@@ -106,34 +106,49 @@ jobs:
         pip install polars
 
     - name: Validate data files
+      id: validate
       run: |
-        # Get list of changed CSV files
-        CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} -- 'data/**/*.csv' | tr '\n' ' ')
+        # Get list of changed parquet files
+        CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} -- 'data/**/*.parquet' | tr '\n' ' ')
 
         if [ -z "$CHANGED_FILES" ]; then
-          echo "No CSV files changed in this PR"
+          echo "No parquet files changed in this PR"
           exit 0
         fi
 
-        echo "Validating changed CSV files: $CHANGED_FILES"
+        echo "Validating changed parquet files: $CHANGED_FILES"
 
-        # Run validation on all CSV files (not just changed ones, to catch duplicates)
-        python scripts/validate_data.py
+         # Run validation and capture output
+        python scripts/validate_data.py 2>&1 | tee validation_output.txt
+
+        # Store the output in a GitHub Actions output variable
+        {
+          echo "result<<EOF"
+          cat validation_output.txt
+          echo "EOF"
+        } >> "$GITHUB_OUTPUT"
 
     - name: Comment on PR
       if: failure()
       uses: actions/github-script@v7
       with:
         script: |
+          const output = `${{ steps.validate.outputs.result }}`.slice(0, 60000); // trim just in case
+
           github.rest.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: '❌ **Data Validation Failed**\n\n' +
-                  'Your CSV data contribution has validation errors. Please review the workflow logs above and fix the issues:\n\n' +
-                  '- Check for duplicate entries\n' +
-                  '- Ensure proper CSV formatting and UTF-8 encoding\n' +
-                  '- Verify country codes are valid\n' +
-                  '- Confirm business logic (canonical_name ≠ variation for positive data)\n\n' +
-                  'You can run validation locally: `python scripts/validate_data.py --all`'
-          })
+            body:
+              '❌ **Data Validation Failed**\n\n' +
+              'Your parquet data contribution has validation errors.\n\n' +
+              '### Validation Output\n' +
+              '```\n' + output + '\n```\n' +
+              '### Fix checklist\n' +
+              '- Check for duplicate entries\n' +
+              '- Ensure proper parquet formatting and UTF-8 encoding\n' +
+              '- Verify country codes are valid\n' +
+              '- Confirm business logic (canonical_name ≠ variation for positive data)\n\n' +
+              'You can run validation locally: `python scripts/validate_data.py`'
+          });
+
