@@ -258,6 +258,45 @@ class DataValidator:
                 )
         return exprs
 
+    def _whitespace_check(self, lf: pl.LazyFrame) -> List[pl.Expr]:
+        """
+        Create expressions to check string columns for trailing/leading and double whitespaces (including newlines).
+
+        Args:
+            lf (pl.LazyFrame): Lazy frame to validate.
+
+        Returns:
+            List[pl.Expr]: List of error expressions for missing data.
+        """      
+        exprs: List[pl.Expr] = []
+        schema = lf.collect_schema()
+        for col, dtype in schema.items():
+            if dtype == pl.Utf8:
+                exprs.append(
+                    pl.when(pl.col(col).str.contains(r"^[ \t\n]"))
+                        .then(pl.lit(f"LeadingWhiteSpaceError: {col} has a leading whitespace"))
+                        .otherwise(None)
+                        .alias(f"LeadingWhiteSpaceError: {col}")
+                )
+                exprs.append(
+                    pl.when(pl.col(col).str.contains(r"[ \t\n]$"))
+                        .then(pl.lit(f"TrailingWhiteSpaceError: {col} has a trailing whitespace"))
+                        .otherwise(None)
+                        .alias(f"TrailingWhiteSpaceError: {col}")
+                )
+                exprs.append(pl.when(
+                                    pl.col(col).str.contains(r"\s{2,}") &
+                                    (~pl.col(col).str.contains(r"^\s{2,}")) &
+                                    (~pl.col(col).str.contains(r"\s{2,}$"))
+                                )
+                        .then(pl.lit(f"DoubleWhiteSpaceError: {col} has a multiple whitespaces"))
+                        .otherwise(None)
+                        .alias(f"DoubleWhiteSpaceError: {col}")
+                )
+
+        return exprs
+            
+
     def _duplication_check(self, lf: pl.LazyFrame) -> pl.Expr:
         """
         Create an expression to identify duplicate rows based on key columns.
@@ -360,7 +399,7 @@ class DataValidator:
 
         errors: List[pl.LazyFrame] = []
         for lf in [positive, negative]:
-            all_checks: List[pl.Expr] = self._mandatory_col_check(lf) + [
+            all_checks: List[pl.Expr] = self._mandatory_col_check(lf) + self._whitespace_check(lf) + [
                 self._difference_check(lf),
                 self._duplication_check(lf),
             ]
