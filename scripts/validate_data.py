@@ -117,7 +117,11 @@ class DataValidator:
                     .then(None)
                     .otherwise(
                         pl.concat_str(
-                            [pl.lit(f"CountryCodeError: {col} has invalid value '"), pl.col(col), pl.lit("'")]
+                            [
+                                pl.lit(f"CountryCodeError: {col} has invalid value '"),
+                                pl.col(col),
+                                pl.lit("'"),
+                            ]
                         )
                     )
                     .alias(f"CountryCodeError: {col}")
@@ -213,12 +217,12 @@ class DataValidator:
             lf = pl.scan_parquet(
                 f,
                 schema={
-            "canonical_name_x": pl.Utf8,
-            "canonical_name_y": pl.Utf8,
-            "country_code_x": pl.Utf8,
-            "country_code_y": pl.Utf8,
-            "remark": pl.Utf8,
-        },
+                    "canonical_name_x": pl.Utf8,
+                    "canonical_name_y": pl.Utf8,
+                    "country_code_x": pl.Utf8,
+                    "country_code_y": pl.Utf8,
+                    "remark": pl.Utf8,
+                },
             )
             if lf.head(1).collect().height == 0:
                 raise EmptyFileError(f"File {f} is empty (no rows).")
@@ -267,35 +271,35 @@ class DataValidator:
 
         Returns:
             List[pl.Expr]: List of error expressions for missing data.
-        """      
+        """
         exprs: List[pl.Expr] = []
         schema = lf.collect_schema()
         for col, dtype in schema.items():
             if dtype == pl.Utf8:
                 exprs.append(
                     pl.when(pl.col(col).str.contains(r"^[ \t\n]"))
-                        .then(pl.lit(f"LeadingWhiteSpaceError: {col} has a leading whitespace"))
-                        .otherwise(None)
-                        .alias(f"LeadingWhiteSpaceError: {col}")
+                    .then(pl.lit(f"LeadingWhiteSpaceError: {col} has a leading whitespace"))
+                    .otherwise(None)
+                    .alias(f"LeadingWhiteSpaceError: {col}")
                 )
                 exprs.append(
                     pl.when(pl.col(col).str.contains(r"[ \t\n]$"))
-                        .then(pl.lit(f"TrailingWhiteSpaceError: {col} has a trailing whitespace"))
-                        .otherwise(None)
-                        .alias(f"TrailingWhiteSpaceError: {col}")
+                    .then(pl.lit(f"TrailingWhiteSpaceError: {col} has a trailing whitespace"))
+                    .otherwise(None)
+                    .alias(f"TrailingWhiteSpaceError: {col}")
                 )
-                exprs.append(pl.when(
-                                    pl.col(col).str.contains(r"\s{2,}") &
-                                    (~pl.col(col).str.contains(r"^\s{2,}")) &
-                                    (~pl.col(col).str.contains(r"\s{2,}$"))
-                                )
-                        .then(pl.lit(f"DoubleWhiteSpaceError: {col} has a multiple whitespaces"))
-                        .otherwise(None)
-                        .alias(f"DoubleWhiteSpaceError: {col}")
+                exprs.append(
+                    pl.when(
+                        pl.col(col).str.contains(r"\s{2,}")
+                        & (~pl.col(col).str.contains(r"^\s{2,}"))
+                        & (~pl.col(col).str.contains(r"\s{2,}$"))
+                    )
+                    .then(pl.lit(f"DoubleWhiteSpaceError: {col} has a multiple whitespaces"))
+                    .otherwise(None)
+                    .alias(f"DoubleWhiteSpaceError: {col}")
                 )
 
         return exprs
-            
 
     def _duplication_check(self, lf: pl.LazyFrame) -> pl.Expr:
         """
@@ -399,10 +403,14 @@ class DataValidator:
 
         errors: List[pl.LazyFrame] = []
         for lf in [positive, negative]:
-            all_checks: List[pl.Expr] = self._mandatory_col_check(lf) + self._whitespace_check(lf) + [
-                self._difference_check(lf),
-                self._duplication_check(lf),
-            ]
+            all_checks: List[pl.Expr] = (
+                self._mandatory_col_check(lf)
+                + self._whitespace_check(lf)
+                + [
+                    self._difference_check(lf),
+                    self._duplication_check(lf),
+                ]
+            )
 
             lf = lf.with_columns(all_checks)
             lf = lf.with_columns(self._concatenate_errors(lf))
@@ -412,7 +420,10 @@ class DataValidator:
         error_report = pl.concat(errors, how="vertical").filter(pl.col("Errors").is_not_null()).collect()
 
         if error_report.height > 0:
-            raise ValidationError("The following errors were found. Please see the below table: \n", error_report)
+            raise ValidationError(
+                "The following errors were found. Please see the below table: \n",
+                error_report,
+            )
         else:
             print("No data errors. Safe to contribute")
 
