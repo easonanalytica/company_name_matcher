@@ -78,7 +78,7 @@ def run_whitespace_check(df: pl.DataFrame):
     """
     lf = df.lazy()
     validator = DataValidator(repo_root=".")
-    exprs = validator._whitespace_check(lf)
+    exprs = validator._whitespace_check(lf) # type: ignore
     result = lf.with_columns(exprs).collect()
     return result
 
