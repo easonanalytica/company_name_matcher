@@ -77,7 +77,7 @@ def run_titlecase_check(df: pl.DataFrame):
     Helper to evaluate the whitespace expressions from _titlecase_check.
     """
     lf = df.lazy()
-    validator = DataValidator(repo_root=Path("."))
+    validator = DataValidator.__new__(DataValidator)
     exprs = validator._titlecase_check(lf)  # type: ignore
     result = lf.with_columns(exprs).collect()
     return result
