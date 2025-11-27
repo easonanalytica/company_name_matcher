@@ -213,12 +213,12 @@ class DataValidator:
             lf = pl.scan_parquet(
                 f,
                 schema={
-            "canonical_name_x": pl.Utf8,
-            "canonical_name_y": pl.Utf8,
-            "country_code_x": pl.Utf8,
-            "country_code_y": pl.Utf8,
-            "remark": pl.Utf8,
-        },
+                    "canonical_name_x": pl.Utf8,
+                    "canonical_name_y": pl.Utf8,
+                    "country_code_x": pl.Utf8,
+                    "country_code_y": pl.Utf8,
+                    "remark": pl.Utf8,
+                },
             )
             if lf.head(1).collect().height == 0:
                 raise EmptyFileError(f"File {f} is empty (no rows).")
@@ -300,6 +300,29 @@ class DataValidator:
             .alias("DuplicateNameError")
         )
 
+    def _titlecase_check(self, lf: pl.LazyFrame) -> List[pl.Expr]:
+        """
+        Creates a list of expressions to check if the company names are in titlecase.
+        Args:
+            lf (pl.LazyFrame): Lazy frame to check.
+
+        Returns:
+            pl.Expr: Error expression for duplicate names.
+        """
+        exprs: List[pl.Expr] = []
+        schema = lf.collect_schema()
+        prefixes = ["canonical_name", "variation"]
+        for col in schema:
+            if any(col.startswith(p) for p in prefixes):
+                exprs.append(
+                    pl.when(pl.col(col) == pl.col(col).str.to_titlecase())
+                    .then(None)
+                    .otherwise(f"CaseError: {col} is not in titlecase")
+                    .alias(f"CaseError: {col}")
+                )
+
+        return exprs
+
     def _concatenate_errors(self, lf: pl.LazyFrame) -> pl.Expr:
         """
         Combine all individual error columns into a single 'Errors' column.
@@ -360,10 +383,14 @@ class DataValidator:
 
         errors: List[pl.LazyFrame] = []
         for lf in [positive, negative]:
-            all_checks: List[pl.Expr] = self._mandatory_col_check(lf) + [
-                self._difference_check(lf),
-                self._duplication_check(lf),
-            ]
+            all_checks: List[pl.Expr] = (
+                self._mandatory_col_check(lf)
+                + self._titlecase_check(lf)
+                + [
+                    self._difference_check(lf),
+                    self._duplication_check(lf),
+                ]
+            )
 
             lf = lf.with_columns(all_checks)
             lf = lf.with_columns(self._concatenate_errors(lf))
