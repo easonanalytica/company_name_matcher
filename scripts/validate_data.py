@@ -315,9 +315,9 @@ class DataValidator:
         for col in schema:
             if any(col.startswith(p) for p in prefixes):
                 exprs.append(
-                    pl.when(pl.col(col) == pl.col(col).str.to_titlecase())
-                    .then(None)
-                    .otherwise(f"CaseError: {col} is not in titlecase")
+                    pl.when(pl.col(col) != pl.col(col).str.to_titlecase())
+                    .then(pl.lit(f"CaseError: {col} is not in titlecase"))
+                    .otherwise(None)
                     .alias(f"CaseError: {col}")
                 )
 
