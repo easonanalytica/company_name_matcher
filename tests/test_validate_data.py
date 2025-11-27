@@ -212,7 +212,9 @@ def test_mandatory_col_check(tmp_path: Path) -> None:
 
     validator = DataValidator(tmp_path)
 
-    df = pl.DataFrame({"canonical_name": ["a"], "variation": ["b"], "country_code": ["US"]})
+    df = pl.DataFrame(
+        {"canonical_name": ["a"], "variation": ["b"], "country_code": ["US"]}
+    )
     lf = df.lazy()
 
     exprs = validator._mandatory_col_check(lf)  # type: ignore
@@ -265,7 +267,9 @@ def test_concatenate_errors(tmp_path: Path) -> None:
 
     validator = DataValidator(tmp_path)
 
-    df = pl.DataFrame({"Error1": [None, "X"], "Error2": ["A", None], "canonical_name": ["a", "b"]})
+    df = pl.DataFrame(
+        {"Error1": [None, "X"], "Error2": ["A", None], "canonical_name": ["a", "b"]}
+    )
     lf = df.lazy()
 
     expr = validator._concatenate_errors(lf)  # type: ignore
