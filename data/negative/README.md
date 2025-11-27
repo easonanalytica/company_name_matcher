@@ -38,6 +38,7 @@ These related entities should naturally score in the middle range (0.5-0.8), not
 - Use canonical legal entity names (same as positive examples)
 - Apache Parquet format with zstd compression
 - Country codes in filename must be sorted alphabetically (CN_US.parquet, not US_CN.parquet)
+-`country_code_x` and `country_code_y` should be in titlecase
 
 ## 📊 Examples
 
