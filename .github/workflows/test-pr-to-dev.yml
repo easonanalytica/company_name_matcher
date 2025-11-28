@@ -72,7 +72,7 @@ jobs:
 
     - name: Check code formatting with Black
       run: |
-        black --check --diff src/ tests/
+        black --check --diff src/ tests/ --config pyproject.toml
 
     - name: Run basic linting
       run: |

@@ -79,6 +79,13 @@ def run_titlecase_check(df: pl.DataFrame):
     lf = df.lazy()
     validator = DataValidator.__new__(DataValidator)
     exprs = validator._titlecase_check(lf)  # type: ignore
+def run_whitespace_check(df: pl.DataFrame):
+    """
+    Helper to evaluate the whitespace expressions from _whitespace_check.
+    """
+    lf = df.lazy()
+    validator = DataValidator.__new__(DataValidator)
+    exprs = validator._whitespace_check(lf)  # type: ignore
     result = lf.with_columns(exprs).collect()
     return result
 
@@ -212,7 +219,9 @@ def test_mandatory_col_check(tmp_path: Path) -> None:
 
     validator = DataValidator(tmp_path)
 
-    df = pl.DataFrame({"canonical_name": ["a"], "variation": ["b"], "country_code": ["US"]})
+    df = pl.DataFrame(
+        {"canonical_name": ["a"], "variation": ["b"], "country_code": ["US"]}
+    )
     lf = df.lazy()
 
     exprs = validator._mandatory_col_check(lf)  # type: ignore
@@ -361,3 +370,69 @@ def test_titlecase_check_fail() -> None:
     out = run_titlecase_check(df)
 
     assert out["CaseError: variation"][0] == "CaseError: variation is not in titlecase"
+def test_leading_whitespace_detected():
+    df = pl.DataFrame({"canonical_name": ["  Apple Inc."]})
+    out = run_whitespace_check(df)
+
+    assert (
+        out["LeadingWhiteSpaceError: canonical_name"][0]
+        == "LeadingWhiteSpaceError: canonical_name has a leading whitespace"
+    )
+    assert out["TrailingWhiteSpaceError: canonical_name"][0] is None
+    assert out["DoubleWhiteSpaceError: canonical_name"][0] is None
+
+
+def test_trailing_whitespace_detected():
+    df = pl.DataFrame({"canonical_name": ["Apple Inc.  "]})
+    out = run_whitespace_check(df)
+
+    assert out["LeadingWhiteSpaceError: canonical_name"][0] is None
+    assert (
+        out["TrailingWhiteSpaceError: canonical_name"][0]
+        == "TrailingWhiteSpaceError: canonical_name has a trailing whitespace"
+    )
+    assert out["DoubleWhiteSpaceError: canonical_name"][0] is None
+
+
+def test_double_whitespace_detected():
+    df = pl.DataFrame({"canonical_name": ["Apple  Inc."]})
+    out = run_whitespace_check(df)
+
+    assert out["LeadingWhiteSpaceError: canonical_name"][0] is None
+    assert out["TrailingWhiteSpaceError: canonical_name"][0] is None
+    assert (
+        out["DoubleWhiteSpaceError: canonical_name"][0]
+        == "DoubleWhiteSpaceError: canonical_name has a multiple whitespaces"
+    )
+
+
+def test_newlines_are_detected():
+    df = pl.DataFrame({"canonical_name": ["\nApple Inc.\n"]})
+    out = run_whitespace_check(df)
+
+    assert (
+        out["LeadingWhiteSpaceError: canonical_name"][0]
+        == "LeadingWhiteSpaceError: canonical_name has a leading whitespace"
+    )
+    assert (
+        out["TrailingWhiteSpaceError: canonical_name"][0]
+        == "TrailingWhiteSpaceError: canonical_name has a trailing whitespace"
+    )
+    assert out["DoubleWhiteSpaceError: canonical_name"][0] is None
+
+
+def test_no_whitespace_errors():
+    df = pl.DataFrame({"canonical_name": ["Apple Inc."]})
+    out = run_whitespace_check(df)
+
+    assert out["LeadingWhiteSpaceError: canonical_name"][0] is None
+    assert out["TrailingWhiteSpaceError: canonical_name"][0] is None
+    assert out["DoubleWhiteSpaceError: canonical_name"][0] is None
+
+
+def test_non_utf8_column_is_ignored():
+    df = pl.DataFrame({"index": [1]})  # Int64 → should not create any error columns
+    out = run_whitespace_check(df)
+
+    # Should produce exactly zero new columns
+    assert out.columns == ["index"]
