@@ -8,9 +8,7 @@ class Dataset:
     shape: Tuple[int, ...]
     dtype: Any
 
-    def __getitem__(
-        self, key: Union[int, str, slice, Tuple[Union[int, slice], ...]]
-    ) -> NDArray[np.floating]: ...
+    def __getitem__(self, key: Union[int, str, slice, Tuple[Union[int, slice], ...]]) -> NDArray[np.floating]: ...
     def __setitem__(
         self,
         key: Union[int, str, slice, Tuple[Union[int, slice], ...]],

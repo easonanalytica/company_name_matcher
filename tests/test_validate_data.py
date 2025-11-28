@@ -79,6 +79,10 @@ def run_titlecase_check(df: pl.DataFrame):
     lf = df.lazy()
     validator = DataValidator.__new__(DataValidator)
     exprs = validator._titlecase_check(lf)  # type: ignore
+    result = lf.with_columns(exprs).collect()
+    return result
+
+
 def run_whitespace_check(df: pl.DataFrame):
     """
     Helper to evaluate the whitespace expressions from _whitespace_check.
@@ -219,9 +223,7 @@ def test_mandatory_col_check(tmp_path: Path) -> None:
 
     validator = DataValidator(tmp_path)
 
-    df = pl.DataFrame(
-        {"canonical_name": ["a"], "variation": ["b"], "country_code": ["US"]}
-    )
+    df = pl.DataFrame({"canonical_name": ["a"], "variation": ["b"], "country_code": ["US"]})
     lf = df.lazy()
 
     exprs = validator._mandatory_col_check(lf)  # type: ignore
@@ -370,6 +372,8 @@ def test_titlecase_check_fail() -> None:
     out = run_titlecase_check(df)
 
     assert out["CaseError: variation"][0] == "CaseError: variation is not in titlecase"
+
+
 def test_leading_whitespace_detected():
     df = pl.DataFrame({"canonical_name": ["  Apple Inc."]})
     out = run_whitespace_check(df)
