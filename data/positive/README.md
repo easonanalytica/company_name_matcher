@@ -30,6 +30,7 @@ Pairs of `canonical_name` (official registered legal entity name) and `variation
 - Both represent the **same legal entity**
 - Apache Parquet format with zstd compression
 - Not included: related-but-different entities (parent/subsidiary, sister companies)
+- No trailing/leading and double whitespaces/tabs/newlines
 
 ## 📊 Examples
 
