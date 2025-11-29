@@ -11,16 +11,41 @@ logger = logging.getLogger(__name__)
 
 
 class VectorStore:
+    """
+    A simple vector store for embedding-based retrieval using KMeans clustering.
+
+    This class supports adding items, building an approximate search index with KMeans,
+    saving/loading the index, and performing exact or approximate similarity search.
+    """
+
     def __init__(self, embeddings: NDArray[np.floating], items: List[str]):
+        """
+        Initialize the vector store with embeddings and associated items.
+
+        Parameters
+        ----------
+        embeddings : NDArray[np.floating]
+            A 2D numpy array of shape (n_items, embedding_dim) containing item embeddings.
+        items : List[str]
+            A list of item identifiers corresponding to the embeddings.
+
+        Examples
+        --------
+        >>> from company_name_matcher import VectorStore
+        >>> import numpy as np
+        >>> embeddings = np.random.rand(5, 128)  # 5 items with 128-dim embeddings
+        >>> items = ['a', 'b', 'c', 'd', 'e']
+        >>> store = VectorStore(embeddings, items)
+        >>> store.items
+        ['a', 'b', 'c', 'd', 'e']
+        """
         if len(embeddings) == 1 and embeddings[0][0] == 0 and items == ["dummy"]:
             # Special case for dummy initialization
             self.embeddings = embeddings
             self.items = items
         else:
             # Normal case - normalize the embeddings
-            self.embeddings = (
-                embeddings / np.linalg.norm(embeddings, axis=1)[:, np.newaxis]
-            )
+            self.embeddings = embeddings / np.linalg.norm(embeddings, axis=1)[:, np.newaxis]
             self.items = items
         self.kmeans = None
         self.clusters: Optional[NDArray[np.int64]] = None
@@ -32,31 +57,45 @@ class VectorStore:
         overwrite: bool = True,
     ):
         """
-        Build k-means clustering index for approximate search
+        Build a KMeans clustering index for approximate nearest neighbor search.
 
-        Args:
-            n_clusters: Number of clusters for KMeans
-            save_path: Optional directory path to save the index
-            overwrite: Whether to overwrite existing index files (default: True)
+        Parameters
+        ----------
+        n_clusters : int, default=100
+            The number of clusters to create in KMeans.
+        save_path : str, optional
+            Directory path where the index will be saved. If None, the index is not saved.
+        overwrite : bool, default=True
+            If True, existing files in the save path will be overwritten.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from company_name_matcher import VectorStore
+        >>> embeddings = np.random.rand(10, 64)
+        >>> items = [str(i) for i in range(10)]
+        >>> store = VectorStore(embeddings, items)
+        >>> store.build_index(n_clusters=3)
+        >>> store.clusters
+        array([1, 0, 2, 1, 2, 1, 1, 2, 2, 2], dtype=int32)
+        >>> store.kmeans.cluster_centers_.shape
+        (3, 64)
+
+        Notes
+        -----
+        If the dataset is smaller than `n_clusters`, the number of clusters will
+        automatically be reduced to avoid errors.
         """
         # Handle edge cases with very small datasets
         if len(self.items) <= 1:
-            logger.warning(
-                "Cannot build KMeans index with 1 or 0 items. Skipping index creation."
-            )
+            logger.warning("Cannot build KMeans index with 1 or 0 items. Skipping index creation.")
             self.kmeans = None
-            self.clusters = (
-                np.zeros(len(self.items), dtype=int)
-                if len(self.items) > 0
-                else np.array([])
-            )
+            self.clusters = np.zeros(len(self.items), dtype=int) if len(self.items) > 0 else np.array([])
             return
 
         if len(self.items) < n_clusters:
             n_clusters = max(1, min(len(self.items) - 1, len(self.items) // 2))
-            logger.info(
-                f"Reduced number of clusters to {n_clusters} based on dataset size"
-            )
+            logger.info(f"Reduced number of clusters to {n_clusters} based on dataset size")
 
         self.kmeans = KMeans(n_clusters=n_clusters)
         self.clusters = self.kmeans.fit_predict(self.embeddings)
@@ -82,9 +121,7 @@ class VectorStore:
         model_path = os.path.join(save_path, "kmeans_model.joblib")
 
         if not overwrite and (os.path.exists(h5_path) or os.path.exists(model_path)):
-            raise FileExistsError(
-                f"Index files already exist in {save_path}. Set overwrite=True to replace them."
-            )
+            raise FileExistsError(f"Index files already exist in {save_path}. Set overwrite=True to replace them.")
 
         # Save embeddings and items using h5py
         with h5py.File(h5_path, "w") as f:
@@ -110,10 +147,7 @@ class VectorStore:
         with h5py.File(h5_path, "r") as f:
             self.embeddings = f["embeddings"][:]
             # Decode byte strings to regular strings
-            self.items = [
-                item.decode("utf-8") if isinstance(item, bytes) else item
-                for item in f["items"][:]
-            ]
+            self.items = [item.decode("utf-8") if isinstance(item, bytes) else item for item in f["items"][:]]
 
         # Load KMeans model and clusters from joblib
         data = load(model_path)
@@ -145,12 +179,8 @@ class VectorStore:
 
         if not use_approx or self.kmeans is None:
             # Exact search using cosine similarity
-            similarities = self._cosine_similarity(
-                query_embedding.reshape(1, -1), self.embeddings
-            )
-            k = min(
-                k, len(self.items)
-            )  # Ensure k is not larger than the number of items
+            similarities = self._cosine_similarity(query_embedding.reshape(1, -1), self.embeddings)
+            k = min(k, len(self.items))  # Ensure k is not larger than the number of items
             indices = np.argsort(similarities.flatten())[-k:][::-1]
             return [(self.items[i], float(similarities.flatten()[i])) for i in indices]
 
@@ -168,30 +198,21 @@ class VectorStore:
 
         # If no indices found (shouldn't happen but just in case), fall back to exact search
         if len(all_indices) == 0:
-            logger.warning(
-                f"No items found in the {n_probe_clusters} closest clusters. Falling back to exact search."
-            )
+            logger.warning(f"No items found in the {n_probe_clusters} closest clusters. Falling back to exact search.")
             return self.search(query_embedding, k, use_approx=False)
 
         # Calculate similarities only for items in the selected clusters
         all_indices = np.array(all_indices)
-        cluster_similarities = self._cosine_similarity(
-            query_embedding.reshape(1, -1), self.embeddings[all_indices]
-        )
+        cluster_similarities = self._cosine_similarity(query_embedding.reshape(1, -1), self.embeddings[all_indices])
 
         # Get top k results from the combined clusters
         k = min(k, len(all_indices))
         top_k_indices = np.argsort(cluster_similarities.flatten())[-k:][::-1]
 
-        return [
-            (self.items[all_indices[i]], float(cluster_similarities.flatten()[i]))
-            for i in top_k_indices
-        ]
+        return [(self.items[all_indices[i]], float(cluster_similarities.flatten()[i])) for i in top_k_indices]
 
     @staticmethod
-    def _cosine_similarity(
-        a: NDArray[np.floating], b: NDArray[np.floating]
-    ) -> NDArray[np.floating]:
+    def _cosine_similarity(a: NDArray[np.floating], b: NDArray[np.floating]) -> NDArray[np.floating]:
         """Calculate cosine similarity between normalized vectors"""
         # Since vectors are normalized, cosine similarity is just the dot product
         return np.dot(a, b.T)
@@ -213,9 +234,7 @@ class VectorStore:
             overwrite: Whether to overwrite existing index files (default: True)
         """
         # Normalize new embeddings
-        normalized_embeddings = (
-            new_embeddings / np.linalg.norm(new_embeddings, axis=1)[:, np.newaxis]
-        )
+        normalized_embeddings = new_embeddings / np.linalg.norm(new_embeddings, axis=1)[:, np.newaxis]
 
         # Append to existing embeddings and items
         self.embeddings = np.vstack([self.embeddings, normalized_embeddings])
@@ -226,9 +245,7 @@ class VectorStore:
             # Predict clusters for new items
             new_clusters = self.kmeans.predict(normalized_embeddings)
             assert self.clusters is not None, "clusters should not be None here"
-            self.clusters = np.concatenate(
-                [self.clusters.astype(np.int64), new_clusters]
-            )
+            self.clusters = np.concatenate([self.clusters.astype(np.int64), new_clusters])
 
         # Save updated index if save_dir is provided
         if save_dir:
