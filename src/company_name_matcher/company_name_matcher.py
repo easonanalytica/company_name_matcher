@@ -33,9 +33,7 @@ class CompanyNameMatcher:
         self.vector_store = None
         self.stopwords = stopwords
         # Use custom preprocessing function if provided, otherwise use default
-        self.preprocess_fn = (
-            preprocess_fn if preprocess_fn is not None else self._default_preprocess
-        )
+        self.preprocess_fn = preprocess_fn if preprocess_fn is not None else self._default_preprocess
 
         # Embedding cache
         self.use_cache = use_cache
@@ -80,9 +78,7 @@ class CompanyNameMatcher:
 
     def get_embeddings(self, company_names: List[str]) -> NDArray[np.floating]:
         """get embeddings for a list of company names."""
-        preprocessed_names = [
-            self._preprocess_company_name(name) for name in company_names
-        ]
+        preprocessed_names = [self._preprocess_company_name(name) for name in company_names]
         return self.embedder.encode(preprocessed_names)
 
     def compare_companies(self, company_a: str, company_b: str) -> float:
@@ -122,9 +118,7 @@ class CompanyNameMatcher:
             load_dir: Directory path containing the index files
                      ('embeddings.h5' and 'kmeans_model.joblib')
         """
-        self.vector_store = VectorStore(
-            np.array([[0]]), ["dummy"]
-        )  # Initialize with dummy data
+        self.vector_store = VectorStore(np.array([[0]]), ["dummy"])  # Initialize with dummy data
         self.vector_store.load_index(load_dir)
 
     def find_matches(
@@ -155,16 +149,12 @@ class CompanyNameMatcher:
             For multiple companies: List of lists of (company, similarity) tuples
         """
         if self.vector_store is None:
-            raise ValueError(
-                "No index available. Call build_index or load_index first."
-            )
+            raise ValueError("No index available. Call build_index or load_index first.")
 
         # Handle single company case
         if isinstance(target_company, str):
             target_embedding = self.get_embedding(target_company)
-            return self._find_matches_single(
-                target_embedding, threshold, k, use_approx, n_probe_clusters
-            )
+            return self._find_matches_single(target_embedding, threshold, k, use_approx, n_probe_clusters)
 
         # Handle multiple companies case
         if n_jobs == 1:
@@ -203,18 +193,12 @@ class CompanyNameMatcher:
                 n_probe_clusters=n_probe_clusters,
             )
             # Filter by threshold and take top k
-            matches = [
-                (company, similarity)
-                for company, similarity in matches
-                if similarity >= threshold
-            ]
+            matches = [(company, similarity) for company, similarity in matches if similarity >= threshold]
             matches = matches[:k]
         else:
             # Use exact search with the stored embeddings
             assert self.vector_store is not None, "vector_store is not initialised yet"
-            similarities = self._cosine_similarity(
-                target_embedding.reshape(1, -1), self.vector_store.embeddings
-            )
+            similarities = self._cosine_similarity(target_embedding.reshape(1, -1), self.vector_store.embeddings)
             similarities = similarities.flatten().tolist()
 
             # Get all matches above threshold
@@ -246,9 +230,7 @@ class CompanyNameMatcher:
 
             batch_results: List[List[Tuple[str, float]]] = []
             for embedding in batch_embeddings:
-                matches = self._find_matches_single(
-                    embedding, threshold, k, use_approx, n_probe_clusters
-                )
+                matches = self._find_matches_single(embedding, threshold, k, use_approx, n_probe_clusters)
                 batch_results.append(matches)
 
             results.extend(batch_results)
@@ -281,9 +263,7 @@ class CompanyNameMatcher:
             batch_embeddings = self.get_embeddings(batch)
             batch_results: List[List[Tuple[str, float]]] = []
             for embedding in batch_embeddings:
-                matches = self._find_matches_single(
-                    embedding, threshold, k, use_approx, n_probe_clusters
-                )
+                matches = self._find_matches_single(embedding, threshold, k, use_approx, n_probe_clusters)
                 batch_results.append(matches)
             return batch_results
 
@@ -325,15 +305,11 @@ class CompanyNameMatcher:
         """
         return cast(
             List[List[Tuple[str, float]]],
-            self.find_matches(
-                target_companies, threshold, k, use_approx, batch_size, n_jobs
-            ),
+            self.find_matches(target_companies, threshold, k, use_approx, batch_size, n_jobs),
         )
 
     @staticmethod
-    def _cosine_similarity(
-        a: NDArray[np.floating], b: NDArray[np.floating]
-    ) -> NDArray[np.floating]:
+    def _cosine_similarity(a: NDArray[np.floating], b: NDArray[np.floating]) -> NDArray[np.floating]:
         """Calculate cosine similarity between two vectors or between a vector and a matrix."""
         logger.debug(f"Input shapes: a={a.shape}, b={b.shape}")
 
@@ -370,9 +346,7 @@ class CompanyNameMatcher:
             ValueError: If no index has been built or loaded
         """
         if self.vector_store is None:
-            raise ValueError(
-                "No index available. Call build_index or load_index first."
-            )
+            raise ValueError("No index available. Call build_index or load_index first.")
 
         new_embeddings = self.get_embeddings(new_company_list)
         self.vector_store.add_items(new_embeddings, new_company_list, save_dir)

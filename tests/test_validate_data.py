@@ -72,6 +72,17 @@ def dummy_negative(root: Path) -> Path:
     return write_negative_parquet(root, "AA_BB.parquet", df)
 
 
+def run_titlecase_check(df: pl.DataFrame):
+    """
+    Helper to evaluate the whitespace expressions from _titlecase_check.
+    """
+    lf = df.lazy()
+    validator = DataValidator.__new__(DataValidator)
+    exprs = validator._titlecase_check(lf)  # type: ignore
+    result = lf.with_columns(exprs).collect()
+    return result
+
+
 def run_whitespace_check(df: pl.DataFrame):
     """
     Helper to evaluate the whitespace expressions from _whitespace_check.
@@ -212,9 +223,7 @@ def test_mandatory_col_check(tmp_path: Path) -> None:
 
     validator = DataValidator(tmp_path)
 
-    df = pl.DataFrame(
-        {"canonical_name": ["a"], "variation": ["b"], "country_code": ["US"]}
-    )
+    df = pl.DataFrame({"canonical_name": ["a"], "variation": ["b"], "country_code": ["US"]})
     lf = df.lazy()
 
     exprs = validator._mandatory_col_check(lf)  # type: ignore
@@ -267,9 +276,7 @@ def test_concatenate_errors(tmp_path: Path) -> None:
 
     validator = DataValidator(tmp_path)
 
-    df = pl.DataFrame(
-        {"Error1": [None, "X"], "Error2": ["A", None], "canonical_name": ["a", "b"]}
-    )
+    df = pl.DataFrame({"Error1": [None, "X"], "Error2": ["A", None], "canonical_name": ["a", "b"]})
     lf = df.lazy()
 
     expr = validator._concatenate_errors(lf)  # type: ignore
@@ -351,6 +358,20 @@ def test_validate_no_errors(tmp_path: Path) -> None:
 
     # Should not raise any errors
     validator.validate()
+
+
+def test_titlecase_check_pass() -> None:
+    df = pl.DataFrame({"variation": ["Apple Inc."]})
+    out = run_titlecase_check(df)
+
+    assert out["CaseError: variation"][0] is None
+
+
+def test_titlecase_check_fail() -> None:
+    df = pl.DataFrame({"variation": ["apple Inc."]})
+    out = run_titlecase_check(df)
+
+    assert out["CaseError: variation"][0] == "CaseError: variation is not in titlecase"
 
 
 def test_leading_whitespace_detected():
