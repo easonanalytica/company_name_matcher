@@ -12,7 +12,6 @@ repos:
     rev: 7.0.0
     hooks:
       - id: flake8
-        args: [--max-line-length=120, --max-complexity=10]
 
   # Bandit security linter (matches CI: bandit -r src/ -c .bandit)
   - repo: https://github.com/PyCQA/bandit
