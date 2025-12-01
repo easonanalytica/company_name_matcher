@@ -1,11 +1,10 @@
 import os
-
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import pytest
-import numpy as np
 from company_name_matcher import CompanyNameMatcher
 import time
 import re
+
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
 @pytest.fixture
@@ -13,9 +12,7 @@ def default_matcher():
     def preprocess_name(name):
         return re.sub(r"[^a-zA-Z0-9\s]", "", name.lower()).strip()
 
-    return CompanyNameMatcher(
-        "paraphrase-multilingual-MiniLM-L12-v2", preprocess_fn=preprocess_name
-    )
+    return CompanyNameMatcher("paraphrase-multilingual-MiniLM-L12-v2", preprocess_fn=preprocess_name)
 
 
 @pytest.fixture
@@ -64,13 +61,9 @@ def test_find_matches_multiple_companies(default_matcher, test_companies, tmp_pa
     # Verify result structure for multiple companies
     assert isinstance(multi_result, list), "Result should be a list"
     assert len(multi_result) == len(queries), "Should return one result per query"
+    assert all(isinstance(item, list) for item in multi_result), "Each result should be a list"
     assert all(
-        isinstance(item, list) for item in multi_result
-    ), "Each result should be a list"
-    assert all(
-        isinstance(match, tuple) and len(match) == 2
-        for result in multi_result
-        for match in result
+        isinstance(match, tuple) and len(match) == 2 for result in multi_result for match in result
     ), "Each match should be a (company, score) tuple"
 
 
@@ -80,37 +73,27 @@ def test_batch_processing_performance(default_matcher, tmp_path):
 
     # Build index
     index_dir = tmp_path / "test_perf_index"
-    default_matcher.build_index(
-        large_company_set, n_clusters=10, save_dir=str(index_dir)
-    )
+    default_matcher.build_index(large_company_set, n_clusters=10, save_dir=str(index_dir))
 
     # Generate test queries
     test_queries = [f"Company {i}" for i in range(0, 50, 5)]  # 10 queries
 
     # Test sequential processing
     start_time = time.time()
-    sequential_results = default_matcher.find_matches(
-        test_queries, threshold=0.7, n_jobs=1
-    )
+    sequential_results = default_matcher.find_matches(test_queries, threshold=0.7, n_jobs=1)
     sequential_time = time.time() - start_time
 
     # Test parallel processing
     start_time = time.time()
-    parallel_results = default_matcher.find_matches(
-        test_queries, threshold=0.7, n_jobs=2
-    )
+    parallel_results = default_matcher.find_matches(test_queries, threshold=0.7, n_jobs=2)
     parallel_time = time.time() - start_time
 
     # Verify results are the same
-    assert len(sequential_results) == len(
-        parallel_results
-    ), "Sequential and parallel results should have same length"
+    assert len(sequential_results) == len(parallel_results), "Sequential and parallel results should have same length"
 
     # Check that results are similar (may not be identical due to floating point differences)
     for seq_matches, par_matches in zip(sequential_results, parallel_results):
-        assert len(seq_matches) == len(
-            par_matches
-        ), "Number of matches should be the same"
+        assert len(seq_matches) == len(par_matches), "Number of matches should be the same"
 
         # Check companies match (order might differ slightly)
         seq_companies = {match[0] for match in seq_matches}
@@ -118,15 +101,13 @@ def test_batch_processing_performance(default_matcher, tmp_path):
         assert seq_companies == par_companies, "Same companies should be matched"
 
     # Print performance comparison (not an assertion as performance depends on hardware)
-    print(f"\nPerformance comparison:")
+    print("\nPerformance comparison:")
     print(f"Sequential processing time: {sequential_time:.4f}s")
     print(f"Parallel processing time: {parallel_time:.4f}s")
     print(f"Speedup: {sequential_time/parallel_time:.2f}x")
 
 
-def test_batch_find_matches_backward_compatibility(
-    default_matcher, test_companies, tmp_path
-):
+def test_batch_find_matches_backward_compatibility(default_matcher, test_companies, tmp_path):
     # Build index
     index_dir = tmp_path / "test_compat_index"
     default_matcher.build_index(test_companies, n_clusters=2, save_dir=str(index_dir))
@@ -139,21 +120,15 @@ def test_batch_find_matches_backward_compatibility(
     old_results = default_matcher.batch_find_matches(queries, threshold=0.7)
 
     # Verify results are the same
-    assert len(new_results) == len(
-        old_results
-    ), "Results from both methods should have same length"
+    assert len(new_results) == len(old_results), "Results from both methods should have same length"
 
     # Check that results are identical
     for new_matches, old_matches in zip(new_results, old_results):
-        assert len(new_matches) == len(
-            old_matches
-        ), "Number of matches should be the same"
+        assert len(new_matches) == len(old_matches), "Number of matches should be the same"
 
         for new_match, old_match in zip(new_matches, old_matches):
             assert new_match[0] == old_match[0], "Matched company should be the same"
-            assert (
-                abs(new_match[1] - old_match[1]) < 1e-6
-            ), "Similarity scores should be the same"
+            assert abs(new_match[1] - old_match[1]) < 1e-6, "Similarity scores should be the same"
 
 
 def test_n_jobs_parameter(default_matcher, test_companies, tmp_path):
@@ -167,9 +142,7 @@ def test_n_jobs_parameter(default_matcher, test_companies, tmp_path):
     # Test with different n_jobs values
     results_1 = default_matcher.find_matches(queries, threshold=0.7, n_jobs=1)
     results_2 = default_matcher.find_matches(queries, threshold=0.7, n_jobs=2)
-    results_neg = default_matcher.find_matches(
-        queries, threshold=0.7, n_jobs=-1
-    )  # All cores
+    results_neg = default_matcher.find_matches(queries, threshold=0.7, n_jobs=-1)  # All cores
 
     # Verify all results have the same structure
     assert (
@@ -182,6 +155,4 @@ def test_n_jobs_parameter(default_matcher, test_companies, tmp_path):
         companies_2 = {match[0] for match in results_2[i]}
         companies_neg = {match[0] for match in results_neg[i]}
 
-        assert (
-            companies_1 == companies_2 == companies_neg
-        ), f"Same companies should be matched for query {queries[i]}"
+        assert companies_1 == companies_2 == companies_neg, f"Same companies should be matched for query {queries[i]}"

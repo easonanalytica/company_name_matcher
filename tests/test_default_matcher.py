@@ -1,10 +1,9 @@
 import os
-
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import pytest
-import pandas as pd
 from company_name_matcher import CompanyNameMatcher
 import re
+
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
 @pytest.fixture
@@ -12,9 +11,7 @@ def default_matcher():
     def preprocess_name(name):
         return re.sub(r"[^a-zA-Z0-9\s]", "", name.lower()).strip()
 
-    return CompanyNameMatcher(
-        "paraphrase-multilingual-MiniLM-L12-v2", preprocess_fn=preprocess_name
-    )
+    return CompanyNameMatcher("paraphrase-multilingual-MiniLM-L12-v2", preprocess_fn=preprocess_name)
 
 
 def test_basic_company_comparison(default_matcher):
@@ -43,7 +40,7 @@ def test_multilingual_support(default_matcher):
         similarity = default_matcher.compare_companies(company1, company2)
         assert (
             abs(similarity - expected_score) < tolerance
-        ), f"Multilingual similarity between {company1} and {company2} was {similarity}, expected around {expected_score}"
+        ), f"Similarity between {company1} and {company2} was {similarity}, expected ~{expected_score}"
 
 
 def test_index_operations(default_matcher, tmp_path):
@@ -62,14 +59,10 @@ def test_index_operations(default_matcher, tmp_path):
 
     # Verify index files were created
     assert os.path.exists(index_dir / "embeddings.h5"), "Embeddings file not created"
-    assert os.path.exists(
-        index_dir / "kmeans_model.joblib"
-    ), "KMeans model file not created"
+    assert os.path.exists(index_dir / "kmeans_model.joblib"), "KMeans model file not created"
 
     # Test index loading
-    new_matcher = CompanyNameMatcher(
-        "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-    )
+    new_matcher = CompanyNameMatcher("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
     new_matcher.load_index(str(index_dir))
 
     # Test exact search
@@ -78,13 +71,9 @@ def test_index_operations(default_matcher, tmp_path):
     assert matches[0][0] == "Apple Inc", f"Expected 'Apple Inc', got {matches[0][0]}"
 
     # Test approximate search
-    approx_matches = new_matcher.find_matches(
-        "Apple", threshold=0.7, use_approx=True, k=1
-    )
+    approx_matches = new_matcher.find_matches("Apple", threshold=0.7, use_approx=True, k=1)
     assert len(approx_matches) > 0, "No approximate matches found for 'Apple'"
-    assert (
-        approx_matches[0][0] == "Apple Inc"
-    ), f"Expected 'Apple Inc', got {approx_matches[0][0]}"
+    assert approx_matches[0][0] == "Apple Inc", f"Expected 'Apple Inc', got {approx_matches[0][0]}"
 
 
 def test_embedding_generation(default_matcher):
@@ -103,9 +92,7 @@ def test_index_expansion(default_matcher, tmp_path):
 
     # Build initial index
     index_dir = tmp_path / "expansion_test_index"
-    default_matcher.build_index(
-        initial_companies, n_clusters=2, save_dir=str(index_dir)
-    )
+    default_matcher.build_index(initial_companies, n_clusters=2, save_dir=str(index_dir))
 
     # New companies to add
     new_companies = ["Google LLC", "Amazon.com Inc"]
@@ -117,6 +104,4 @@ def test_index_expansion(default_matcher, tmp_path):
     for company in initial_companies + new_companies:
         matches = default_matcher.find_matches(company, threshold=0.9, use_approx=False)
         assert len(matches) > 0, f"No matches found for {company}"
-        assert company in [
-            match[0] for match in matches
-        ], f"Exact match not found for {company}"
+        assert company in [match[0] for match in matches], f"Exact match not found for {company}"

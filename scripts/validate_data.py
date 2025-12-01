@@ -1,434 +1,458 @@
-#!/usr/bin/env python3
 """
 Data Validation Script for Company Name Matcher
 
-Validates CSV data contributions for:
+Validates parquet data contributions for:
 - Format consistency
 - Data integrity
 - Duplicate prevention
 - Business logic compliance
 
 Usage:
-    python scripts/validate_data.py [--file FILE] [--all]
-
-Options:
-    --file FILE: Validate a specific CSV file
-    --all: Validate all CSV files in data/ directory
+    python scripts/validate_data.py
 """
 
-import argparse
-import csv
-import glob
-import os
-import sys
+from glob import glob
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
+from typing import Set, List
+import polars as pl
+import re
+
+
+class EmptyFileError(Exception):
+    """Raised when a parquet file contains headers but has no data rows."""
+
+    pass
+
+
+class ValidationError(Exception):
+    """
+    Raised when data validation fails for one or more parquet files.
+    Includes the offending Polars DataFrame in the exception message.
+
+    Attributes:
+        df (pl.DataFrame): The DataFrame that caused the validation error.
+    """
+
+    def __init__(self, message: str, df: pl.DataFrame):
+        """
+        Initialize ValidationError with a message and the offending DataFrame.
+
+        Args:
+            message (str): Description of the validation error.
+            df (pl.DataFrame): The DataFrame that failed validation.
+        """
+        pl.Config.set_tbl_rows(df.height)
+        pl.Config.set_tbl_width_chars(-1)
+        pl.Config.set_fmt_str_lengths(1_000_000_000)
+        full_message = f"{message}\n{df}"
+        super().__init__(full_message)
+        self.df = df
+
+
+class FileNameError(Exception):
+    """Raised when a parquet file has an invalid filename according to predefined naming conventions."""
+
+    pass
 
 
 class DataValidator:
-    def __init__(self, repo_root: str):
+    """
+    Class responsible for validating parquet data contributions for the
+    Company Name Matcher repository.
+
+    Validations performed include:
+    - Mandatory column presence
+    - Country code validity
+    - Filename and country code consistency
+    - Duplicate detection
+    - Content differences between canonical names and variations
+    """
+
+    def __init__(self, repo_root: Path) -> None:
+        """
+        Initialize the DataValidator.
+
+        Args:
+            repo_root (Path): Root path of the repository containing the data directories.
+        """
         self.repo_root = Path(repo_root)
         self.data_dir = self.repo_root / "data"
         self.positive_dir = self.data_dir / "positive"
         self.negative_dir = self.data_dir / "negative"
-        self.reference_dir = self.data_dir / "_reference"
+        self.country_code_file = self.data_dir / "_reference" / "countrycode.csv"
 
         # Load country codes
         self.country_codes = self._load_country_codes()
 
-        # Track all existing data for duplicate checking
-        self.existing_positive: Set[Tuple[str, str, str]] = set()
-        self.existing_negative: Set[Tuple[str, str, str, str]] = set()
-
-        self._load_existing_data()
+        # Scan parquets
+        self.positive_parquets = self._scan_positive_parquets()
+        self.negative_parquets = self._scan_negative_parquets()
 
     def _load_country_codes(self) -> Set[str]:
-        """Load valid country codes from reference file."""
-        country_codes = set()
-        country_file = self.reference_dir / "countrycode.csv"
+        """
+        Load the list of valid ISO2 country codes from a reference CSV file.
 
-        if not country_file.exists():
-            print(f"Warning: Country code reference file not found at {country_file}")
-            return country_codes
+        Returns:
+            Set[str]: Set of valid country codes.
+        """
+        country_codes = pl.read_csv(self.country_code_file, columns=["ISO2"])
+        return set(country_codes["ISO2"].str.strip_chars().to_list())
 
-        try:
-            with open(country_file, 'r', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    if 'ISO2' in row:
-                        country_codes.add(row['ISO2'].strip().upper())
-        except Exception as e:
-            print(f"Warning: Could not load country codes: {e}")
+    def _country_code_validity_check(self, lf: pl.LazyFrame) -> List[pl.Expr]:
+        """
+        Generate Polars expressions to check if country codes in the DataFrame are valid.
 
-        return country_codes
+        Args:
+            lf (pl.LazyFrame): The lazy DataFrame to validate.
 
-    def _load_existing_data(self, exclude_file: Path = None):
-        """Load all existing CSV data for duplicate checking, optionally excluding one file."""
-        # Load positive data
-        for csv_file in glob.glob(str(self.positive_dir / "*.csv")):
-            if exclude_file and Path(csv_file) == exclude_file:
-                continue
-            try:
-                with open(csv_file, 'r', encoding='utf-8') as f:
-                    reader = csv.DictReader(f)
-                    for row in reader:
-                        canonical = row.get('canonical_name', '').strip()
-                        variation = row.get('variation', '').strip()
-                        country = row.get('country_code', '').strip().upper()
-                        if canonical and variation and country:
-                            self.existing_positive.add((canonical, variation, country))
-            except Exception as e:
-                print(f"Warning: Could not load existing positive data from {csv_file}: {e}")
+        Returns:
+            List[pl.Expr]: List of expressions producing error messages for invalid codes.
+        """
+        exprs: List[pl.Expr] = []
+        schema = lf.collect_schema()
+        for col in schema:
+            if col.startswith("country_code"):
+                exprs.append(
+                    pl.when(pl.col(col).is_in(self.country_codes))
+                    .then(None)
+                    .otherwise(
+                        pl.concat_str(
+                            [
+                                pl.lit(f"CountryCodeError: {col} has invalid value '"),
+                                pl.col(col),
+                                pl.lit("'"),
+                            ]
+                        )
+                    )
+                    .alias(f"CountryCodeError: {col}")
+                )
+        return exprs
 
-        # Load negative data
-        for csv_file in glob.glob(str(self.negative_dir / "*.csv")):
-            if exclude_file and Path(csv_file) == exclude_file:
-                continue
-            try:
-                with open(csv_file, 'r', encoding='utf-8') as f:
-                    reader = csv.DictReader(f)
-                    for row in reader:
-                        name_x = row.get('canonical_name_x', '').strip()
-                        name_y = row.get('canonical_name_y', '').strip()
-                        country_x = row.get('country_code_x', '').strip().upper()
-                        country_y = row.get('country_code_y', '').strip().upper()
-                        if name_x and name_y and country_x and country_y:
-                            self.existing_negative.add((name_x, name_y, country_x, country_y))
-            except Exception as e:
-                print(f"Warning: Could not load existing negative data from {csv_file}: {e}")
+    def _country_code_filename_match_check(
+        self, lf: pl.LazyFrame, filename: str, negative: bool = False
+    ) -> List[pl.Expr]:
+        """
+        Generate expressions to check if country codes match the filename.
 
-    def validate_positive_csv(self, file_path: Path) -> List[str]:
-        """Validate a positive data CSV file."""
-        errors = []
+        Args:
+            lf (pl.LazyFrame): Lazy DataFrame to validate.
+            filename (str): Name of the parquet file being checked.
+            negative (bool, optional): Whether the file is negative samples. Defaults to False.
 
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
-                row_num = 1  # Start after header
+        Returns:
+            List[pl.Expr]: List of expressions producing filename mismatch errors.
+        """
+        exprs: List[pl.Expr] = []
+        base_name = Path(filename).stem
 
-                for row in reader:
-                    row_num += 1
-
-                    # Check required columns
-                    canonical = row.get('canonical_name', '').strip()
-                    variation = row.get('variation', '').strip()
-                    country = row.get('country_code', '').strip().upper()
-                    source = row.get('source', '').strip()
-
-                    if not canonical:
-                        errors.append(f"Row {row_num}: Missing canonical_name")
-                        continue
-                    if not variation:
-                        errors.append(f"Row {row_num}: Missing variation")
-                        continue
-                    if not country:
-                        errors.append(f"Row {row_num}: Missing country_code")
-                        continue
-
-                    # Business logic checks
-                    if canonical == variation:
-                        errors.append(f"Row {row_num}: canonical_name and variation must be different")
-
-                    if country not in self.country_codes:
-                        errors.append(f"Row {row_num}: Invalid country_code '{country}'")
-
-                    # Check for duplicates (including across existing files)
-                    key = (canonical, variation, country)
-                    if key in self.existing_positive:
-                        errors.append(f"Row {row_num}: Duplicate entry {key} already exists in repository")
-
-        except UnicodeDecodeError:
-            errors.append("File encoding error: File must be UTF-8 encoded")
-        except Exception as e:
-            errors.append(f"File parsing error: {e}")
-
-        return errors
-
-    def validate_negative_csv(self, file_path: Path) -> List[str]:
-        """Validate a negative data CSV file."""
-        errors = []
-
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
-                row_num = 1  # Start after header
-
-                for row in reader:
-                    row_num += 1
-
-                    # Check required columns
-                    name_x = row.get('canonical_name_x', '').strip()
-                    name_y = row.get('canonical_name_y', '').strip()
-                    country_x = row.get('country_code_x', '').strip().upper()
-                    country_y = row.get('country_code_y', '').strip().upper()
-                    remark = row.get('remark', '').strip()
-
-                    if not name_x:
-                        errors.append(f"Row {row_num}: Missing canonical_name_x")
-                        continue
-                    if not name_y:
-                        errors.append(f"Row {row_num}: Missing canonical_name_y")
-                        continue
-                    if not country_x:
-                        errors.append(f"Row {row_num}: Missing country_code_x")
-                        continue
-                    if not country_y:
-                        errors.append(f"Row {row_num}: Missing country_code_y")
-                        continue
-
-                    # Business logic checks
-                    if name_x == name_y:
-                        errors.append(f"Row {row_num}: canonical_name_x and canonical_name_y must be different")
-
-                    if country_x not in self.country_codes:
-                        errors.append(f"Row {row_num}: Invalid country_code_x '{country_x}'")
-
-                    if country_y not in self.country_codes:
-                        errors.append(f"Row {row_num}: Invalid country_code_y '{country_y}'")
-
-                    # Check for duplicates (including across existing files)
-                    key = (name_x, name_y, country_x, country_y)
-                    if key in self.existing_negative:
-                        errors.append(f"Row {row_num}: Duplicate entry {key} already exists in repository")
-
-                    # Also check reverse order (pairs should be unique regardless of order)
-                    reverse_key = (name_y, name_x, country_y, country_x)
-                    if reverse_key in self.existing_negative:
-                        errors.append(f"Row {row_num}: Reverse duplicate entry {reverse_key} already exists in repository")
-
-        except UnicodeDecodeError:
-            errors.append("File encoding error: File must be UTF-8 encoded")
-        except Exception as e:
-            errors.append(f"File parsing error: {e}")
-
-        return errors
-
-    def validate_csv_file(self, file_path: Path) -> bool:
-        """Validate a single CSV file and return True if valid."""
-        if not file_path.exists():
-            print(f"Error: File {file_path} does not exist")
-            return False
-
-        # Reload existing data excluding the current file being validated
-        self.existing_positive.clear()
-        self.existing_negative.clear()
-        self._load_existing_data(exclude_file=file_path)
-
-        # Determine if positive or negative based on directory
-        if file_path.parent == self.positive_dir:
-            errors = self.validate_positive_csv(file_path)
-        elif file_path.parent == self.negative_dir:
-            errors = self.validate_negative_csv(file_path)
+        if not negative:
+            exprs.append(
+                pl.when(pl.col("country_code") == base_name)
+                .then(None)
+                .otherwise(pl.lit(f"CountryCodeError: country_code != filename ({base_name})"))
+                .alias("CountryCodeError: filename_mismatch")
+            )
         else:
-            print(f"Error: File {file_path} is not in positive/ or negative/ directory")
-            return False
+            if "_" not in base_name:
+                raise FileNameError(f"Negative filename {filename} does not contain an underscore separator.")
+            expected = sorted(base_name.split("_"))
+            exprs.append(
+                pl.when(pl.col("country_code_x") == expected[0])
+                .then(None)
+                .otherwise(pl.lit(f"CountryCodeError: country_code_x != filename part ({expected[0]})"))
+                .alias("CountryCodeError: filename_mismatch_x")
+            )
+            exprs.append(
+                pl.when(pl.col("country_code_y") == expected[1])
+                .then(None)
+                .otherwise(pl.lit(f"CountryCodeError: country_code_y != filename part ({expected[1]})"))
+                .alias("CountryCodeError: filename_mismatch_y")
+            )
 
-        if errors:
-            print(f"❌ Validation failed for {file_path}:")
-            for error in errors:
-                print(f"  - {error}")
-            return False
+        return exprs
+
+    def _scan_positive_parquets(self) -> pl.LazyFrame:
+        """
+        Scan all positive parquet files, validate structure, and attach initial error columns.
+
+        Returns:
+            pl.LazyFrame: Concatenated lazy frame of all positive parquet files.
+        """
+        frames: List[pl.LazyFrame] = []
+        for f in glob(str(self.positive_dir / "*.parquet")):
+            filename = Path(f).name
+            lf = pl.scan_parquet(
+                f,
+                schema={
+                    "canonical_name": pl.Utf8,
+                    "variation": pl.Utf8,
+                    "country_code": pl.Utf8,
+                    "source": pl.Utf8,
+                },
+            )
+            if lf.head(1).collect().height == 0:
+                raise EmptyFileError(f"File {f} is empty (no rows).")
+
+            lf = (
+                lf.with_row_index(name="Row Number", offset=2)
+                .with_columns(pl.lit(f"positive/{filename}").alias("Filename"))
+                .with_columns(
+                    self._country_code_validity_check(lf) + self._country_code_filename_match_check(lf, filename)
+                )
+            )
+            frames.append(lf)
+
+        return pl.concat(frames, how="vertical")
+
+    def _scan_negative_parquets(self) -> pl.LazyFrame:
+        """
+        Scan all negative parquet files, validate structure, and attach initial error columns.
+
+        Returns:
+            pl.LazyFrame: Concatenated lazy frame of all negative parquet files.
+        """
+        frames: List[pl.LazyFrame] = []
+        for f in glob(str(self.negative_dir / "*.parquet")):
+            filename = Path(f).name
+            lf = pl.scan_parquet(
+                f,
+                schema={
+                    "canonical_name_x": pl.Utf8,
+                    "canonical_name_y": pl.Utf8,
+                    "country_code_x": pl.Utf8,
+                    "country_code_y": pl.Utf8,
+                    "remark": pl.Utf8,
+                },
+            )
+            if lf.head(1).collect().height == 0:
+                raise EmptyFileError(f"File {f} is empty (no rows).")
+
+            lf = (
+                lf.with_row_index(name="Row Number", offset=2)
+                .with_columns(pl.lit(f"negative/{filename}").alias("Filename"))
+                .with_columns(
+                    self._country_code_validity_check(lf)
+                    + self._country_code_filename_match_check(lf, filename, negative=True)
+                )
+            )
+            frames.append(lf)
+
+        return pl.concat(frames, how="vertical")
+
+    def _mandatory_col_check(self, lf: pl.LazyFrame) -> List[pl.Expr]:
+        """
+        Create expressions to check mandatory columns for missing or empty values.
+
+        Args:
+            lf (pl.LazyFrame): Lazy frame to validate.
+
+        Returns:
+            List[pl.Expr]: List of error expressions for missing data.
+        """
+        prefixes = ["canonical_name", "variation", "country_code"]
+        exprs: List[pl.Expr] = []
+        schema = lf.collect_schema()
+        for col in schema:
+            if any(col.startswith(p) for p in prefixes):
+                exprs.append(
+                    pl.when(pl.col(col).is_null() | (pl.col(col).str.strip_chars() == ""))
+                    .then(pl.lit(f"MissingDataError: {col} is mandatory"))
+                    .otherwise(None)
+                    .alias(f"MissingDataError: {col}")
+                )
+        return exprs
+
+    def _whitespace_check(self, lf: pl.LazyFrame) -> List[pl.Expr]:
+        """
+        Create expressions to check string columns for trailing/leading and double whitespaces (including newlines).
+
+        Args:
+            lf (pl.LazyFrame): Lazy frame to validate.
+
+        Returns:
+            List[pl.Expr]: List of error expressions for missing data.
+        """
+        exprs: List[pl.Expr] = []
+        schema = lf.collect_schema()
+        for col, dtype in schema.items():
+            if dtype == pl.Utf8:
+                exprs.append(
+                    pl.when(pl.col(col).str.contains(r"^[ \t\n]"))
+                    .then(pl.lit(f"LeadingWhiteSpaceError: {col} has a leading whitespace"))
+                    .otherwise(None)
+                    .alias(f"LeadingWhiteSpaceError: {col}")
+                )
+                exprs.append(
+                    pl.when(pl.col(col).str.contains(r"[ \t\n]$"))
+                    .then(pl.lit(f"TrailingWhiteSpaceError: {col} has a trailing whitespace"))
+                    .otherwise(None)
+                    .alias(f"TrailingWhiteSpaceError: {col}")
+                )
+                exprs.append(
+                    pl.when(
+                        pl.col(col).str.contains(r"\s{2,}")
+                        & (~pl.col(col).str.contains(r"^\s{2,}"))
+                        & (~pl.col(col).str.contains(r"\s{2,}$"))
+                    )
+                    .then(pl.lit(f"DoubleWhiteSpaceError: {col} has a multiple whitespaces"))
+                    .otherwise(None)
+                    .alias(f"DoubleWhiteSpaceError: {col}")
+                )
+
+        return exprs
+
+    def _duplication_check(self, lf: pl.LazyFrame) -> pl.Expr:
+        """
+        Create an expression to identify duplicate rows based on key columns.
+
+        Args:
+            lf (pl.LazyFrame): Lazy frame to check for duplicates.
+
+        Returns:
+            pl.Expr: Error expression for duplicate rows.
+        """
+        schema = lf.collect_schema()
+        prefixes = ["canonical_name", "variation", "country_code"]
+        cols_to_check = [col for col in schema if any(col.startswith(p) for p in prefixes)]
+        return (
+            pl.when(pl.struct(cols_to_check).is_duplicated())
+            .then(pl.lit("DuplicateRowError: duplicate row found"))
+            .otherwise(None)
+            .alias("DuplicateRowError")
+        )
+
+    def _difference_check(self, lf: pl.LazyFrame) -> pl.Expr:
+        """
+        Create an expression to detect identical canonical and variation names.
+
+        Args:
+            lf (pl.LazyFrame): Lazy frame to check.
+
+        Returns:
+            pl.Expr: Error expression for duplicate names.
+        """
+        schema = lf.collect_schema()
+        prefixes = ["canonical_name", "variation"]
+        cols = [col for col in schema if any(col.startswith(p) for p in prefixes)]
+        col1, col2 = cols[:2]
+        return (
+            pl.when(
+                pl.col(col1).str.to_lowercase().str.strip_chars() == pl.col(col2).str.to_lowercase().str.strip_chars()
+            )
+            .then(pl.lit(f"DuplicateNameError: {col1} and {col2} have the same name"))
+            .alias("DuplicateNameError")
+        )
+
+    def _titlecase_check(self, lf: pl.LazyFrame) -> List[pl.Expr]:
+        """
+        Creates a list of expressions to check if the company names are in titlecase.
+        Args:
+            lf (pl.LazyFrame): Lazy frame to check.
+
+        Returns:
+            pl.Expr: Error expression for duplicate names.
+        """
+        exprs: List[pl.Expr] = []
+        schema = lf.collect_schema()
+        prefixes = ["canonical_name", "variation"]
+        for col in schema:
+            if any(col.startswith(p) for p in prefixes):
+                exprs.append(
+                    pl.when(pl.col(col) != pl.col(col).str.to_titlecase())
+                    .then(pl.lit(f"CaseError: {col} is not in titlecase"))
+                    .otherwise(None)
+                    .alias(f"CaseError: {col}")
+                )
+
+        return exprs
+
+    def _concatenate_errors(self, lf: pl.LazyFrame) -> pl.Expr:
+        """
+        Combine all individual error columns into a single 'Errors' column.
+
+        Args:
+            lf (pl.LazyFrame): Lazy frame containing error columns.
+
+        Returns:
+            pl.Expr: Expression concatenating all errors.
+        """
+        schema = lf.collect_schema()
+        error_cols = [c for c in schema if "Error" in c]
+        concat_expr = pl.concat_str([pl.col(c) for c in error_cols], separator="\n", ignore_nulls=True)
+        return pl.when(concat_expr == "").then(None).otherwise(concat_expr).alias("Errors")
+
+    def _filename_check(self, data_dir: Path, negative: bool = False) -> None:
+        """
+        Validate filenames against expected patterns for positive and negative datasets.
+
+        Args:
+            data_dir (Path): Directory containing parquet files.
+            negative (bool, optional): Flag for negative dataset filename pattern. Defaults to False.
+
+        Raises:
+            FileNameError: If any files do not match the expected naming conventions.
+        """
+        pattern = re.compile(r"^[A-Z]{2}(_[A-Z]{2})?\.parquet$") if negative else re.compile(r"^[A-Z]{2}\.parquet$")
+        bad_files: List[str] = []
+        for f in glob(str(data_dir / "*.parquet")):
+            filename = Path(f).name
+            if not pattern.match(filename):
+                bad_files.append(f)
+        if bad_files:
+            formatted = "\n  - " + "\n  - ".join(sorted(bad_files))
+            raise FileNameError(f"Invalid filenames found:\n{formatted}")
+
+    def validate(self) -> None:
+        """
+        Execute all validation checks on the dataset.
+
+        Checks performed:
+        - File naming conventions
+        - Mandatory columns
+        - Country code validity
+        - Filename-country code consistency
+        - Duplicate rows
+        - Canonical and variation name uniqueness
+
+        Raises:
+            ValidationError: If any data validation errors are found.
+        """
+        # Check filenames
+        self._filename_check(self.positive_dir)
+        self._filename_check(self.negative_dir, negative=True)
+
+        positive = self.positive_parquets
+        negative = self.negative_parquets
+
+        errors: List[pl.LazyFrame] = []
+        for lf in [positive, negative]:
+            all_checks: List[pl.Expr] = (
+                self._mandatory_col_check(lf)
+                + self._titlecase_check(lf)
+                + self._whitespace_check(lf)
+                + [
+                    self._difference_check(lf),
+                    self._duplication_check(lf),
+                ]
+            )
+
+            lf = lf.with_columns(all_checks)
+            lf = lf.with_columns(self._concatenate_errors(lf))
+            lf = lf.select("Filename", "Row Number", "Errors")
+            errors.append(lf)
+
+        error_report = pl.concat(errors, how="vertical").filter(pl.col("Errors").is_not_null()).collect()
+
+        if error_report.height > 0:
+            raise ValidationError(
+                "The following errors were found. Please see the below table: \n",
+                error_report,
+            )
         else:
-            print(f"✅ {file_path} passed validation")
-            return True
-
-    def validate_all_csv_files(self) -> bool:
-        """Validate all CSV files in data/ directory."""
-        all_valid = True
-
-        # First pass: validate each file individually without cross-file duplicate checking
-        print("🔍 First pass: validating individual file integrity...")
-
-        # Validate positive files
-        positive_files = list(self.positive_dir.glob("*.csv"))
-        if positive_files:
-            print(f"\n🔍 Validating {len(positive_files)} positive data files...")
-            for csv_file in positive_files:
-                if not self.validate_csv_file_for_integrity(csv_file):
-                    all_valid = False
-
-        # Validate negative files
-        negative_files = list(self.negative_dir.glob("*.csv"))
-        if negative_files:
-            print(f"\n🔍 Validating {len(negative_files)} negative data files...")
-            for csv_file in negative_files:
-                if not self.validate_csv_file_for_integrity(csv_file):
-                    all_valid = False
-
-        # Second pass: check for cross-file duplicates
-        if all_valid:
-            print("\n🔍 Second pass: checking for cross-file duplicates...")
-            if not self._check_cross_file_duplicates(positive_files + negative_files):
-                all_valid = False
-
-        return all_valid
-
-    def validate_csv_file_for_integrity(self, file_path: Path) -> bool:
-        """Validate a CSV file for internal integrity only (no cross-file duplicate checking)."""
-        errors = []
-
-        # Clear existing data to avoid cross-file checking
-        self.existing_positive.clear()
-        self.existing_negative.clear()
-
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
-                row_num = 1  # Start after header
-                seen_positive = set()
-                seen_negative = set()
-
-                for row in reader:
-                    row_num += 1
-
-                    if file_path.parent == self.positive_dir:
-                        # Validate positive data structure
-                        canonical = row.get('canonical_name', '').strip()
-                        variation = row.get('variation', '').strip()
-                        country = row.get('country_code', '').strip().upper()
-
-                        if not canonical:
-                            errors.append(f"Row {row_num}: Missing canonical_name")
-                            continue
-                        if not variation:
-                            errors.append(f"Row {row_num}: Missing variation")
-                            continue
-                        if not country:
-                            errors.append(f"Row {row_num}: Missing country_code")
-                            continue
-
-                        # Business logic
-                        if canonical == variation:
-                            errors.append(f"Row {row_num}: canonical_name and variation must be different")
-
-                        if country not in self.country_codes:
-                            errors.append(f"Row {row_num}: Invalid country_code '{country}'")
-
-                        # Check for duplicates within this file
-                        key = (canonical, variation, country)
-                        if key in seen_positive:
-                            errors.append(f"Row {row_num}: Duplicate within file {key}")
-                        seen_positive.add(key)
-
-                    elif file_path.parent == self.negative_dir:
-                        # Validate negative data structure
-                        name_x = row.get('canonical_name_x', '').strip()
-                        name_y = row.get('canonical_name_y', '').strip()
-                        country_x = row.get('country_code_x', '').strip().upper()
-                        country_y = row.get('country_code_y', '').strip().upper()
-
-                        if not name_x:
-                            errors.append(f"Row {row_num}: Missing canonical_name_x")
-                            continue
-                        if not name_y:
-                            errors.append(f"Row {row_num}: Missing canonical_name_y")
-                            continue
-                        if not country_x:
-                            errors.append(f"Row {row_num}: Missing country_code_x")
-                            continue
-                        if not country_y:
-                            errors.append(f"Row {row_num}: Missing country_code_y")
-                            continue
-
-                        # Business logic
-                        if name_x == name_y:
-                            errors.append(f"Row {row_num}: canonical_name_x and canonical_name_y must be different")
-
-                        if country_x not in self.country_codes:
-                            errors.append(f"Row {row_num}: Invalid country_code_x '{country_x}'")
-
-                        if country_y not in self.country_codes:
-                            errors.append(f"Row {row_num}: Invalid country_code_y '{country_y}'")
-
-                        # Check for duplicates within this file
-                        key = (name_x, name_y, country_x, country_y)
-                        reverse_key = (name_y, name_x, country_y, country_x)
-                        if key in seen_negative or reverse_key in seen_negative:
-                            errors.append(f"Row {row_num}: Duplicate within file {key}")
-                        seen_negative.add(key)
-
-        except UnicodeDecodeError:
-            errors.append("File encoding error: File must be UTF-8 encoded")
-        except Exception as e:
-            errors.append(f"File parsing error: {e}")
-
-        if errors:
-            print(f"❌ Validation failed for {file_path}:")
-            for error in errors:
-                print(f"  - {error}")
-            return False
-        else:
-            print(f"✅ {file_path} passed integrity validation")
-            return True
-
-    def _check_cross_file_duplicates(self, all_files: List[Path]) -> bool:
-        """Check for duplicates across all files."""
-        all_positive_data = set()
-        all_negative_data = set()
-        no_duplicates = True
-
-        # Collect all data
-        for file_path in all_files:
-            try:
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    reader = csv.DictReader(f)
-                    for row in reader:
-                        if file_path.parent == self.positive_dir:
-                            canonical = row.get('canonical_name', '').strip()
-                            variation = row.get('variation', '').strip()
-                            country = row.get('country_code', '').strip().upper()
-                            if canonical and variation and country:
-                                key = (canonical, variation, country)
-                                if key in all_positive_data:
-                                    print(f"❌ Cross-file duplicate found: {key} exists in multiple positive files")
-                                    no_duplicates = False
-                                all_positive_data.add(key)
-                        elif file_path.parent == self.negative_dir:
-                            name_x = row.get('canonical_name_x', '').strip()
-                            name_y = row.get('canonical_name_y', '').strip()
-                            country_x = row.get('country_code_x', '').strip().upper()
-                            country_y = row.get('country_code_y', '').strip().upper()
-                            if name_x and name_y and country_x and country_y:
-                                key = (name_x, name_y, country_x, country_y)
-                                reverse_key = (name_y, name_x, country_y, country_x)
-                                if key in all_negative_data or reverse_key in all_negative_data:
-                                    print(f"❌ Cross-file duplicate found: {key} exists in multiple negative files")
-                                    no_duplicates = False
-                                all_negative_data.add(key)
-            except Exception as e:
-                print(f"Warning: Could not read {file_path} for duplicate checking: {e}")
-
-        if no_duplicates:
-            print("✅ No cross-file duplicates found")
-        return no_duplicates
-
-
-def main():
-    parser = argparse.ArgumentParser(description="Validate CSV data contributions")
-    parser.add_argument('--file', type=str, help='Validate a specific CSV file')
-    parser.add_argument('--all', action='store_true', help='Validate all CSV files in data/ directory')
-
-    args = parser.parse_args()
-
-    # Find repo root (assume script is in scripts/ subdirectory)
-    script_dir = Path(__file__).parent
-    repo_root = script_dir.parent
-
-    validator = DataValidator(repo_root)
-
-    if args.file:
-        file_path = Path(args.file)
-        if not file_path.is_absolute():
-            file_path = repo_root / file_path
-        success = validator.validate_csv_file(file_path)
-    elif args.all:
-        success = validator.validate_all_csv_files()
-    else:
-        print("Error: Must specify --file FILE or --all")
-        return 1
-
-    return 0 if success else 1
+            print("No data errors. Safe to contribute")
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    repo_root = Path(__file__).parent.parent.resolve()
+    validator = DataValidator(repo_root)
+    validator.validate()

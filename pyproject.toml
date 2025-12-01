@@ -29,6 +29,11 @@ test = [
     "pandas>=2.0.0",
     "pytest>=8.0.0",
     "rapidfuzz>=3.0.0",
+    "polars>=1.0.0",
+    "black==23.12.1",
+    "flake8==7.0.0",
+    "bandit==1.7.6",
+    "pre-commit>=1.0.0",
 ]
 
 [project.urls]
@@ -38,3 +43,15 @@ Homepage = "https://github.com/easonanalytica/company_name_matcher"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"company_name_matcher" = ["py.typed"]
+
+[tool.mypy]
+mypy_path = "typings"
+ignore_missing_imports = true
+
+[tool.black]
+line-length = 120
+
+# Note: Flake8 configuration is in .flake8 file (flake8 doesn't read pyproject.toml by default)

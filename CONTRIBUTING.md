@@ -37,9 +37,43 @@ Thank you for your interest in contributing to Company Name Matcher! This docume
    pytest tests/
    ```
 
+## Code Quality & Formatting
+
+This project uses **pre-commit hooks** to ensure consistent code quality and formatting:
+
+### Automatic Setup (Recommended)
+```bash
+# Install pre-commit hooks (one-time setup)
+pip install pre-commit
+pre-commit install
+
+# (Optional) Run on all files to check current state
+pre-commit run --all-files
+```
+
+### Manual Setup (Alternative)
+If you prefer not to use pre-commit hooks:
+```bash
+# Install formatting tools
+pip install black flake8 bandit
+
+# Format and check manually before committing
+black src/ tests/
+flake8 src/ tests/
+bandit -r src/ -c .bandit
+```
+
+### What Happens
+- **Pre-commit hooks** run automatically on `git commit`
+- **Black** reformats your code to match project standards
+- **Flake8** checks code style and complexity
+- **Bandit** scans for security issues
+
+If hooks fail, your commit is blocked until you fix the issues. This prevents CI failures and ensures consistent code quality!
+
 ## Reporting Issues
 
-**Include the category in your issue title** (e.g., `[bug] Memory leak in matcher`, `[docs] Clarify contribution guidelines`).
+**Include the category in your issue title** (e.g., `[bug] Memory leak in matcher`, `[documentation] Clarify contribution guidelines`).
 
 This helps you categorize the issue type before submitting and helps maintainers prioritize and label issues during triage.
 
@@ -105,9 +139,10 @@ pytest tests/
 1. **Open a pull request** against the `dev` branch (not `main`)
 
 2. **PR Checklist**:
+   - ✅ **Code formatting** (handled automatically by pre-commit hooks)
    - ✅ All tests pass locally
    - ✅ **Automated testing passes**:
-     - Ready PRs → `dev`: Core tests run on multiple Python versions (requires `under-review` label from maintainer to trigger)
+     - Ready PRs → `dev`: Core tests + linting + security checks (requires `under-review` label from maintainer to trigger)
      - `dev` → `main`: Full test suite + linting + security + build checks
    - ✅ **Data validation passes** (if contributing CSV data files, requires `under-review` label from maintainer to trigger)
    - ✅ New features include tests
@@ -134,7 +169,7 @@ We welcome contributions of training data to improve model accuracy! Help us bui
 **Quick start:**
 - Choose type: `data/positive/` (name variations) or `data/negative/` (contrastive pairs)
 - Follow the detailed format guidelines in the README
-- **Validate locally**: `python scripts/validate_data.py --file your_file.csv`
+- **Validate locally**: `python scripts/validate_data.py`
 - Submit via pull request targeting the `dev` branch
 
 Contributing data is a great way to help improve the model without writing code! 🎯
@@ -143,7 +178,7 @@ Contributing data is a great way to help improve the model without writing code!
 
 **Questions?** Check existing [issues](https://github.com/easonanalytica/company_name_matcher/issues) or open a new one.
 
-## 🔄 **Contribution Workflow Overview**
+## **Contribution Workflow Overview**
 
 ```mermaid
 graph TD
