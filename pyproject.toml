@@ -54,8 +54,4 @@ ignore_missing_imports = true
 [tool.black]
 line-length = 120
 
-[tool.flake8]
-max-line-length = 120
-max-complexity = 10
-extend-ignore = ["E203"]  # Ignore whitespace before ':' (conflicts with Black)
-exclude = [".git", "__pycache__", "build", "dist", "*.egg-info"]
+# Note: Flake8 configuration is in .flake8 file (flake8 doesn't read pyproject.toml by default)
