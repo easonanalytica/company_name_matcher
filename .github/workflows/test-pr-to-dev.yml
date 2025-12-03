@@ -73,6 +73,8 @@ jobs:
   
       - name: Run pre-commit on changed files only
         uses: pre-commit/action@v3.0.1
+        with:
+          extra-args: --hook black --hook bandit --hook flake8-strict --hook flake8-regular
 
 
   validate-data:
