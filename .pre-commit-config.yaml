@@ -20,3 +20,14 @@ repos:
       - id: bandit
         args: [-c, .bandit]
         exclude: ^tests/
+
+  # Data Validation
+  - repo: local
+    hooks:
+      - id: validate-data
+        name: Validate Data Contributions
+        entry: python scripts/validate_data.py
+        language: system
+        pass_filenames: false
+        files: ^data/.*\.parquet$
+
