@@ -343,6 +343,29 @@ class DataValidator:
             .alias("DuplicateNameError")
         )
 
+    def _titlecase_check(self, lf: pl.LazyFrame) -> List[pl.Expr]:
+        """
+        Creates a list of expressions to check if the company names are in titlecase.
+        Args:
+            lf (pl.LazyFrame): Lazy frame to check.
+
+        Returns:
+            pl.Expr: Error expression for duplicate names.
+        """
+        exprs: List[pl.Expr] = []
+        schema = lf.collect_schema()
+        prefixes = ["canonical_name", "variation"]
+        for col in schema:
+            if any(col.startswith(p) for p in prefixes):
+                exprs.append(
+                    pl.when(pl.col(col) != pl.col(col).str.to_titlecase())
+                    .then(pl.lit(f"CaseError: {col} is not in titlecase"))
+                    .otherwise(None)
+                    .alias(f"CaseError: {col}")
+                )
+
+        return exprs
+
     def _concatenate_errors(self, lf: pl.LazyFrame) -> pl.Expr:
         """
         Combine all individual error columns into a single 'Errors' column.
@@ -405,6 +428,7 @@ class DataValidator:
         for lf in [positive, negative]:
             all_checks: List[pl.Expr] = (
                 self._mandatory_col_check(lf)
+                + self._titlecase_check(lf)
                 + self._whitespace_check(lf)
                 + [
                     self._difference_check(lf),

@@ -53,3 +53,5 @@ ignore_missing_imports = true
 
 [tool.black]
 line-length = 120
+
+# Note: Flake8 configuration is in .flake8 file (flake8 doesn't read pyproject.toml by default)
