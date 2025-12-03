@@ -11,7 +11,7 @@ repos:
   - repo: https://github.com/pycqa/flake8
     rev: 7.0.0
     hooks:
-      - id: flake8
+      - id: flake8-strict
         name: flake8-strict
         args:
           - --select=E9,F63,F7,F82
@@ -20,7 +20,7 @@ repos:
   - repo: https://github.com/pycqa/flake8
     rev: 7.0.0
     hooks:
-      - id: flake8
+      - id: flake8-regular
         name: flake8-regular
         args:
           - --max-line-length=120
