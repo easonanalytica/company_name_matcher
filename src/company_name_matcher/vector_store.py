@@ -11,6 +11,30 @@ logger = logging.getLogger(__name__)
 
 
 class VectorStore:
+    """
+    A vector store for embedding-based company name matching with optional KMeans clustering.
+
+    This class allows storing company name embeddings, performing exact or approximate similarity search,
+    and managing the index for efficient retrieval.
+
+    Parameters
+    ----------
+    embeddings : NDArray[np.floating]
+        2D array of shape (n_items, embedding_dim) containing the company name embeddings.
+    items : List[str]
+        List of company names corresponding to the embeddings.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from company_name_matcher import VectorStore
+    >>> embeddings = np.random.rand(5, 128)  # 5 company name embeddings with 128 dimensions
+    >>> company_names = ['Acme Corp', 'Globex', 'Initech', 'Umbrella', 'Hooli']
+    >>> store = VectorStore(embeddings, company_names)
+    >>> store.items
+    ['Acme Corp', 'Globex', 'Initech', 'Umbrella', 'Hooli']
+    """
+
     def __init__(self, embeddings: NDArray[np.floating], items: List[str]):
         if len(embeddings) == 1 and embeddings[0][0] == 0 and items == ["dummy"]:
             # Special case for dummy initialization
@@ -30,12 +54,29 @@ class VectorStore:
         overwrite: bool = True,
     ):
         """
-        Build k-means clustering index for approximate search
+        Build a KMeans clustering index for approximate nearest neighbor search.
 
-        Args:
-            n_clusters: Number of clusters for KMeans
-            save_path: Optional directory path to save the index
-            overwrite: Whether to overwrite existing index files (default: True)
+        Useful for quickly retrieving similar company names when the dataset is large.
+
+        Parameters
+        ----------
+        n_clusters : int, default=100
+            The number of clusters to create in KMeans.
+        save_path : str, optional
+            Directory path where the index will be saved. If None, the index is not saved.
+        overwrite : bool, default=True
+            If True, existing files in the save path will be overwritten.
+
+        Examples
+        --------
+        >>> embeddings = np.random.rand(10, 64)
+        >>> company_names = [f'Company{i}' for i in range(10)]
+        >>> store = VectorStore(embeddings, company_names)
+        >>> store.build_index(n_clusters=3)
+        >>> store.clusters.shape
+        (10,)
+        >>> store.kmeans.cluster_centers_.shape
+        (3, 64)
         """
         # Handle edge cases with very small datasets
         if len(self.items) <= 1:
@@ -56,11 +97,24 @@ class VectorStore:
 
     def save_index(self, save_path: str, overwrite: bool = True):
         """
-        Save the index components to disk
+        Save the embeddings, company names, and clustering index to disk.
 
-        Args:
-            save_path: Directory path to save the index
-            overwrite: Whether to overwrite existing index files (default: True)
+        Parameters
+        ----------
+        save_path : str
+            Directory path to save the index.
+        overwrite : bool, default=True
+            Whether to overwrite existing files in the save path.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from company_name_matcher import VectorStore
+        >>> embeddings = np.random.rand(5, 128)
+        >>> company_names = ['Acme Corp', 'Globex', 'Initech', 'Umbrella', 'Hooli']
+        >>> store = VectorStore(embeddings, company_names)
+        >>> store.build_index(n_clusters=2)
+        >>> store.save_index('company_index/')
         """
         if self.kmeans is None:
             raise ValueError("No index to save. Call build_index first.")
@@ -87,7 +141,22 @@ class VectorStore:
         logger.info(f"Index saved to {save_path}")
 
     def load_index(self, load_path: str):
-        """Load the index components from disk"""
+        """
+        Load embeddings, company names, and clustering index from disk.
+
+        Parameters
+        ----------
+        load_path : str
+            Directory path containing the saved index files.
+
+        Examples
+        --------
+        >>> from company_name_matcher import VectorStore
+        >>> store = VectorStore(np.random.rand(1, 128), ['dummy'])  # dummy init
+        >>> store.load_index('company_index/')
+        >>> store.items
+        ['Acme Corp', 'Globex', 'Initech', 'Umbrella', 'Hooli']
+        """
         h5_path = os.path.join(load_path, "embeddings.h5")
         model_path = os.path.join(load_path, "kmeans_model.joblib")
 
@@ -113,13 +182,39 @@ class VectorStore:
         n_probe_clusters: int = 3,
     ) -> List[Tuple[str, float]]:
         """
-        Search for similar items using either exact or approximate k-means search
+        Search for company names similar to a given query embedding.
 
-        Args:
-            query_embedding: The query vector to search for
-            k: Number of results to return
-            use_approx: Whether to use approximate search with k-means
-            n_probe_clusters: Number of closest clusters to search (only for approximate search)
+        Parameters
+        ----------
+        query_embedding : NDArray[np.floating]
+            Embedding vector of the query company name.
+        k : int, default=5
+            Number of top results to return.
+        use_approx : bool, default=False
+            If True, use approximate search with KMeans clusters for faster retrieval.
+        n_probe_clusters : int, default=3
+            Number of closest clusters to search in approximate mode.
+
+        Returns
+        -------
+        List[Tuple[str, float]]
+            List of tuples containing the company name and similarity score.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from company_name_matcher import VectorStore
+        >>> embeddings = np.random.rand(5, 64)
+        >>> company_names = ['Acme Corp', 'Globex', 'Initech', 'Umbrella', 'Hooli']
+        >>> store = VectorStore(embeddings, company_names)
+        >>> store.build_index(n_clusters=2)
+        >>> query_emb = np.random.rand(64)
+        >>> results = store.search(query_emb, k=3)
+        >>> for name, score in results:
+        ...     print(name, score)
+        Globex 0.8084718360141672
+        Umbrella 0.7423598126674433
+        Initech 0.7023631018378196
         """
         # Handle empty index case
         if len(self.items) == 0:
@@ -176,13 +271,31 @@ class VectorStore:
         overwrite: bool = True,
     ):
         """
-        Add new items to the existing index
+        Add new company names and embeddings to the store and optionally save the updated index.
 
-        Args:
-            new_embeddings: Embeddings for new items to add
-            new_items: List of new items to add
-            save_dir: Optional directory path to save the updated index
-            overwrite: Whether to overwrite existing index files (default: True)
+        Parameters
+        ----------
+        new_embeddings : NDArray[np.floating]
+            2D array containing embeddings of the new company names.
+        new_items : List[str]
+            List of new company names.
+        save_dir : str, optional
+            Directory path to save the updated index.
+        overwrite : bool, default=True
+            Whether to overwrite existing files if saving.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from company_name_matcher import VectorStore
+        >>> embeddings = np.random.rand(5, 128)
+        >>> company_names = ['Acme Corp', 'Globex', 'Initech', 'Umbrella', 'Hooli']
+        >>> store = VectorStore(embeddings, company_names)
+        >>> new_embeddings = np.random.rand(2, 128)
+        >>> new_companies = ['Stark Industries', 'Wayne Enterprises']
+        >>> store.add_items(new_embeddings, new_companies)
+        >>> store.items
+        ['Acme Corp', 'Globex', 'Initech', 'Umbrella', 'Hooli', 'Stark Industries', 'Wayne Enterprises']
         """
         # Normalize new embeddings
         normalized_embeddings = new_embeddings / np.linalg.norm(new_embeddings, axis=1)[:, np.newaxis]

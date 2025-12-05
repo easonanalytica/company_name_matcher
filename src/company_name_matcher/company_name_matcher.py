@@ -13,6 +13,37 @@ logger = logging.getLogger(__name__)
 
 
 class CompanyNameMatcher:
+    """
+    Company name matching using embedding-based similarity search.
+
+    This class provides methods to embed company names, build and search
+    an index for similar names, and handle batch or parallel searches.
+    It also supports caching embeddings and custom preprocessing of company names.
+
+    Parameters
+    ----------
+    model_path : str, default="easonanalytica/cnm-multilingual-small-v2"
+        Path or identifier for the SentenceTransformer model to use.
+    preprocess_fn : Callable[[str], str], optional
+        Optional custom preprocessing function for company names.
+        If not provided, a default preprocessing is used (lowercasing, removing special characters, stopwords).
+    stopwords : List[str], default=["inc", "corp", "corporation", "llc", "ltd", "limited", "company"]
+        Words to remove from company names during preprocessing (used by default preprocessing).
+    use_cache : bool, default=True
+        Whether to cache embeddings for faster repeated lookup.
+    cache_size : int, default=1000
+        Maximum number of embeddings to store in the cache.
+
+    Examples
+    --------
+    >>> from company_name_matcher import CompanyNameMatcher
+    >>> matcher = CompanyNameMatcher()
+    >>> company_list = ["Acme Corp", "Globex Corporation", "Initech LLC"]
+    >>> matcher.build_index(company_list, n_clusters=2)
+    >>> matcher.find_matches("Acme", threshold=0.8, k=3)
+    [('Acme Corp', 1.0000001192092896)]
+    """
+
     def __init__(
         self,
         model_path: str = "easonanalytica/cnm-multilingual-small-v2",
@@ -57,7 +88,31 @@ class CompanyNameMatcher:
         return self.preprocess_fn(name)
 
     def get_embedding(self, company_name: str) -> NDArray[np.floating]:
-        """Get the embedding for a single company name with caching."""
+        """
+        Get the embedding vector for a single company name.
+
+        This method preprocesses the company name, optionally uses caching,
+        and returns a numerical embedding suitable for similarity comparisons.
+
+        Parameters
+        ----------
+        company_name : str
+            The company name to embed.
+
+        Returns
+        -------
+        NDArray[np.floating]
+            A 1D numpy array representing the embedding of the company name.
+
+        Examples
+        --------
+        >>> from company_name_matcher import CompanyNameMatcher
+        >>> matcher = CompanyNameMatcher()
+        >>> matcher.build_index(["Acme Corp", "Globex Corp", "Initech LLC"])
+        >>> embedding = matcher.get_embedding("Acme Corp")
+        >>> embedding.shape
+        (384,)  # assuming model outputs 384-dim embeddings
+        """
         preprocessed_name = self._preprocess_company_name(company_name)
 
         # Check cache first if enabled
@@ -77,15 +132,67 @@ class CompanyNameMatcher:
         return embedding
 
     def get_embeddings(self, company_names: List[str]) -> NDArray[np.floating]:
-        """get embeddings for a list of company names."""
+        """
+        Get embedding vectors for a list of company names.
+
+        This method preprocesses all names, optionally uses caching,
+        and returns a 2D array of embeddings.
+
+        Parameters
+        ----------
+        company_names : List[str]
+            List of company names to embed.
+
+        Returns
+        -------
+        NDArray[np.floating]
+            A 2D numpy array of shape (len(company_names), embedding_dim),
+            where each row corresponds to the embedding of a company name.
+
+        Examples
+        --------
+        >>> from company_name_matcher import CompanyNameMatcher
+        >>> matcher = CompanyNameMatcher()
+        >>> matcher.build_index(["Acme Corp", "Globex Corp", "Initech LLC"])
+        >>> embeddings = matcher.get_embeddings(["Acme Corp", "Initech LLC"])
+        >>> embeddings.shape
+        (2, 384)
+        """
         preprocessed_names = [self._preprocess_company_name(name) for name in company_names]
         return self.embedder.encode(preprocessed_names)
 
     def compare_companies(self, company_a: str, company_b: str) -> float:
-        """compare two company names and return a similarity score."""
+        """
+        Compare two company names and return a similarity score between 0 and 1.
+
+        The score is based on cosine similarity of the embeddings. Preprocessing
+        is applied to both names, and caching may be used if enabled.
+
+        Parameters
+        ----------
+        company_a : str
+            The first company name.
+        company_b : str
+            The second company name.
+
+        Returns
+        -------
+        float
+            Cosine similarity score between the two company names (0-1).
+
+        Examples
+        --------
+        >>> from company_name_matcher import CompanyNameMatcher
+        >>> matcher = CompanyNameMatcher()
+        >>> matcher.build_index(["Acme Corp", "Globex Corp", "Initech LLC"])
+        >>> matcher.compare_companies("Acme Corp", "Acme Inc")
+        1.0
+        >>> matcher.compare_companies("Acme Corp", "Initech LLC")
+        0.3694563
+        """
         embedding_a = self.get_embedding(company_a)
         embedding_b = self.get_embedding(company_b)
-        return self._cosine_similarity(embedding_a, embedding_b)[0][0]
+        return float(self._cosine_similarity(embedding_a, embedding_b)[0][0])
 
     def build_index(
         self,
@@ -94,13 +201,23 @@ class CompanyNameMatcher:
         save_dir: Optional[str] = None,
     ):
         """
-        Build search index for the company list
+        Build a search index for a list of company names.
 
-        Args:
-            company_list: List of company names to index
-            n_clusters: Number of clusters for KMeans
-            save_dir: Optional directory path to save the index files
-                     Will create 'embeddings.h5' and 'kmeans_model.joblib' in this directory
+        Parameters
+        ----------
+        company_list : List[str]
+            List of company names to index.
+        n_clusters : int, default=100
+            Number of clusters to create in the underlying KMeans index.
+        save_dir : str, optional
+            Directory path to save the index files ('embeddings.h5' and 'kmeans_model.joblib').
+
+        Examples
+        --------
+        >>> from company_name_matcher import CompanyNameMatcher
+        >>> matcher = CompanyNameMatcher()
+        >>> companies = ["Acme Corp", "Globex Corp", "Initech LLC"]
+        >>> matcher.build_index(companies, n_clusters=2)
         """
         embeddings = self.get_embeddings(company_list)
         self.vector_store = VectorStore(embeddings, company_list)
@@ -112,11 +229,18 @@ class CompanyNameMatcher:
 
     def load_index(self, load_dir: str):
         """
-        Load a previously saved search index
+        Load a previously saved search index.
 
-        Args:
-            load_dir: Directory path containing the index files
-                     ('embeddings.h5' and 'kmeans_model.joblib')
+        Parameters
+        ----------
+        load_dir : str
+            Directory path containing the index files ('embeddings.h5' and 'kmeans_model.joblib').
+
+        Examples
+        --------
+        >>> from company_name_matcher import CompanyNameMatcher
+        >>> matcher = CompanyNameMatcher()
+        >>> matcher.load_index('company_index/')
         """
         self.vector_store = VectorStore(np.array([[0]]), ["dummy"])  # Initialize with dummy data
         self.vector_store.load_index(load_dir)
@@ -132,21 +256,41 @@ class CompanyNameMatcher:
         n_probe_clusters: int = 1,
     ) -> Union[List[Tuple[str, float]], List[List[Tuple[str, float]]]]:
         """
-        Find matches for one or multiple target companies.
+        Find matching companies for a single company name or a list of names.
 
-        Args:
-            target_company: Single company name or list of company names to match
-            threshold: Minimum similarity score (0-1)
-            k: Number of top matches to return per company
-            use_approx: Whether to use approximate k-means search
-            batch_size: Number of companies to process in each batch (when target_company is a list)
-            n_jobs: Number of parallel jobs to run (1 means no parallelization)
-                   Set to -1 to use all available CPU cores
-            n_probe_clusters: Number of closest clusters to search when using approximate search
+        Parameters
+        ----------
+        target_company : str or List[str]
+            Company name or list of company names to match.
+        threshold : float, default=0.9
+            Minimum similarity score (0-1) to consider a match.
+        k : int, default=5
+            Number of top matches to return per company.
+        use_approx : bool, default=False
+            Whether to use approximate search with KMeans clusters.
+        batch_size : int, default=32
+            Number of companies to process in each batch (when passing a list).
+        n_jobs : int, default=1
+            Number of parallel jobs to run (-1 uses all available CPU cores).
+        n_probe_clusters : int, default=1
+            Number of closest clusters to probe when using approximate search.
 
-        Returns:
-            For a single company: List of (company, similarity) tuples
-            For multiple companies: List of lists of (company, similarity) tuples
+        Returns
+        -------
+        If a single company is provided:
+            List[Tuple[str, float]] -- top matching company names and their similarity scores.
+        If a list of companies is provided:
+            List[List[Tuple[str, float]]] -- list of matches for each input company.
+
+        Examples
+        --------
+        >>> from company_name_matcher import CompanyNameMatcher
+        >>> matcher = CompanyNameMatcher()
+        >>> matcher.build_index(["Acme Corp", "Globex Corp", "Initech LLC"])
+        >>> matcher.find_matches("Acme", threshold=0.8, k=3)
+        [('Acme Corp', 1.0000001192092896)]
+        >>> matcher.find_matches(["Acme", "Initech"], threshold=0.8)
+        [[('Acme Corp', 1.0000001192092896)], [('Initech LLC', 1.0)]]
         """
         if self.vector_store is None:
             raise ValueError("No index available. Call build_index or load_index first.")
@@ -289,19 +433,35 @@ class CompanyNameMatcher:
         n_jobs: int = 1,
     ) -> List[List[Tuple[str, float]]]:
         """
-        Find matches for multiple target companies (alias for find_matches with a list).
+        Alias for `find_matches` when matching a list of companies.
 
-        Args:
-            target_companies: List of company names to match
-            threshold: Minimum similarity score (0-1)
-            k: Number of top matches to return per company
-            use_approx: Whether to use approximate k-means search
-            batch_size: Number of companies to process in each batch
-            n_jobs: Number of parallel jobs to run (1 means no parallelization)
-                   Set to -1 to use all available CPU cores
+        Parameters
+        ----------
+        target_companies : List[str]
+            List of company names to match.
+        threshold : float, default=0.9
+            Minimum similarity score (0-1) to consider a match.
+        k : int, default=5
+            Number of top matches to return per company.
+        use_approx : bool, default=False
+            Whether to use approximate search with KMeans clusters.
+        batch_size : int, default=32
+            Number of companies to process in each batch.
+        n_jobs : int, default=1
+            Number of parallel jobs to run (-1 uses all available CPU cores).
 
-        Returns:
-            List of match results for each target company
+        Returns
+        -------
+        List[List[Tuple[str, float]]]
+            List of matches for each target company.
+
+        Examples
+        --------
+        >>> from company_name_matcher import CompanyNameMatcher
+        >>> matcher = CompanyNameMatcher()
+        >>> matcher.build_index(["Acme Corp", "Globex Corp", "Initech LLC"])
+        >>> matcher.batch_find_matches(["Acme", "Initech"], threshold=0.8)
+        [[('Acme Corp', 1.0000001192092896)], [('Initech LLC', 1.0)]]
         """
         return cast(
             List[List[Tuple[str, float]]],
@@ -336,14 +496,26 @@ class CompanyNameMatcher:
 
     def expand_index(self, new_company_list: List[str], save_dir: Optional[str] = None):
         """
-        Add new companies to the existing index
+        Add new companies to an existing index.
 
-        Args:
-            new_company_list: List of new company names to add to the index
-            save_dir: Optional directory path to save the updated index
+        Parameters
+        ----------
+        new_company_list : List[str]
+            List of new company names to add.
+        save_dir : str, optional
+            Directory path to save the updated index.
 
-        Raises:
-            ValueError: If no index has been built or loaded
+        Raises
+        ------
+        ValueError
+            If no index has been built or loaded.
+
+        Examples
+        --------
+        >>> from company_name_matcher import CompanyNameMatcher
+        >>> matcher = CompanyNameMatcher()
+        >>> matcher.build_index(["Acme Corp", "Globex Corp"])
+        >>> matcher.expand_index(["Wayne Enterprises", "Stark Industries"])
         """
         if self.vector_store is None:
             raise ValueError("No index available. Call build_index or load_index first.")
