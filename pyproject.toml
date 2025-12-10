@@ -55,3 +55,20 @@ ignore_missing_imports = true
 line-length = 120
 
 # Note: Flake8 configuration is in .flake8 file (flake8 doesn't read pyproject.toml by default)
+
+[tool.pyright]
+# Which folders to include for type checking
+include = ["."]
+
+# Extra paths for resolving imports outside the package
+extraPaths = ["src", "scripts"]
+
+# Enable strict type checking
+typeCheckingMode = "strict"
+
+# Optional: exclude caches or virtual environments
+exclude = [
+  "**/venv",
+  "**/.pytest_cache",
+  "**/__pycache__"
+]
