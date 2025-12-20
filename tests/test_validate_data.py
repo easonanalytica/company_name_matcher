@@ -374,7 +374,7 @@ def test_titlecase_check_fail() -> None:
     assert out["CaseError: variation"][0] == "CaseError: variation is not in titlecase"
 
 
-def test_leading_whitespace_detected():
+def test_leading_whitespace_detected() -> None:
     df = pl.DataFrame({"canonical_name": ["  Apple Inc."]})
     out = run_whitespace_check(df)
 
