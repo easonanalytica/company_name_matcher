@@ -2,6 +2,7 @@ import os
 import pytest
 from company_name_matcher import CompanyNameMatcher
 import re
+from pathlib import Path
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -86,7 +87,7 @@ def test_embedding_generation(default_matcher):
     assert embedding.shape[0] == 384, "Embedding dimension should be 384"
 
 
-def test_index_expansion(default_matcher, tmp_path):
+def test_index_expansion(default_matcher: CompanyNameMatcher, tmp_path: Path):
     # Initial companies
     initial_companies = ["Apple Inc", "Microsoft Corporation"]
 
