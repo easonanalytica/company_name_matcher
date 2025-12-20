@@ -20,3 +20,15 @@ repos:
       - id: bandit
         args: [-c, .bandit]
         exclude: ^tests/
+
+  - repo: local
+    hooks:
+      - id: unit-test
+        name: Run pytest for unit tests
+        entry: pytest tests/test_batch_processing.py tests/test_default_matcher.py
+        language: python       
+        pass_filenames: false  
+        files: |
+          ^src/.*\.py$|
+          ^tests/test_batch_processing\.py$|
+          ^tests/test_default_matcher\.py$
