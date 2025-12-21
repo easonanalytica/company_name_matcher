@@ -76,7 +76,7 @@ def test_index_operations(default_matcher, tmp_path):
     assert approx_matches[0][0] == "Apple Inc", f"Expected 'Apple Inc', got {approx_matches[0][0]}"
 
 
-def test_embedding_generation(default_matcher):
+def test_embedding_generation(default_matcher: CompanyNameMatcher):
     # Test single embedding
     company_name = "Apple Inc"
     embedding = default_matcher.get_embedding(company_name)
