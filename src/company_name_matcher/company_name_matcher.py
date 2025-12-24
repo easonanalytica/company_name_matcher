@@ -1,6 +1,6 @@
 import logging
 from sentence_transformers import SentenceTransformer
-from typing import List, Tuple, Union, Callable, Optional, Dict, cast
+from typing import List, Tuple, Union, Callable, Optional, Dict, overload
 import numpy as np
 from .vector_store import VectorStore
 import os
@@ -245,6 +245,30 @@ class CompanyNameMatcher:
         self.vector_store = VectorStore(np.array([[0]]), ["dummy"])  # Initialize with dummy data
         self.vector_store.load_index(load_dir)
 
+    @overload
+    def find_matches(
+        self,
+        target_company: str,
+        threshold: float = ...,
+        k: int = ...,
+        use_approx: bool = ...,
+        batch_size: int = ...,
+        n_jobs: int = ...,
+        n_probe_clusters: int = ...,
+    ) -> List[Tuple[str, float]]: ...
+
+    @overload
+    def find_matches(
+        self,
+        target_company: List[str],
+        threshold: float = ...,
+        k: int = ...,
+        use_approx: bool = ...,
+        batch_size: int = ...,
+        n_jobs: int = ...,
+        n_probe_clusters: int = ...,
+    ) -> List[List[Tuple[str, float]]]: ...
+
     def find_matches(
         self,
         target_company: Union[str, List[str]],
@@ -254,7 +278,10 @@ class CompanyNameMatcher:
         batch_size: int = 32,
         n_jobs: int = 1,
         n_probe_clusters: int = 1,
-    ) -> Union[List[Tuple[str, float]], List[List[Tuple[str, float]]]]:
+    ) -> Union[
+        List[Tuple[str, float]],
+        List[List[Tuple[str, float]]],
+    ]:
         """
         Find matching companies for a single company name or a list of names.
 
@@ -463,10 +490,7 @@ class CompanyNameMatcher:
         >>> matcher.batch_find_matches(["Acme", "Initech"], threshold=0.8)
         [[('Acme Corp', 1.0000001192092896)], [('Initech LLC', 1.0)]]
         """
-        return cast(
-            List[List[Tuple[str, float]]],
-            self.find_matches(target_companies, threshold, k, use_approx, batch_size, n_jobs),
-        )
+        return self.find_matches(target_companies, threshold, k, use_approx, batch_size, n_jobs)
 
     @staticmethod
     def _cosine_similarity(a: NDArray[np.floating], b: NDArray[np.floating]) -> NDArray[np.floating]:
