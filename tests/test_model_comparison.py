@@ -10,9 +10,9 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
 @pytest.fixture
-def test_data():
+def test_data() -> pd.DataFrame:
     """Load the test data from CSV file."""
-    return pd.read_csv("tests/test_data.csv")
+    return pd.read_csv("tests/test_data.csv") #type: ignore
 
 
 @pytest.fixture
