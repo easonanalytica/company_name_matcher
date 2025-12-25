@@ -3,6 +3,7 @@ import pytest
 from company_name_matcher import CompanyNameMatcher
 import time
 import re
+from pathlib import Path
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -67,7 +68,7 @@ def test_find_matches_multiple_companies(default_matcher, test_companies, tmp_pa
     ), "Each match should be a (company, score) tuple"
 
 
-def test_batch_processing_performance(default_matcher, tmp_path):
+def test_batch_processing_performance(default_matcher: CompanyNameMatcher, tmp_path: Path):
     # Generate a larger set of test companies
     large_company_set = [f"Company {i}" for i in range(100)]
 
