@@ -398,7 +398,7 @@ def test_trailing_whitespace_detected():
     assert out["DoubleWhiteSpaceError: canonical_name"][0] is None
 
 
-def test_double_whitespace_detected():
+def test_double_whitespace_detected() -> None:
     df = pl.DataFrame({"canonical_name": ["Apple  Inc."]})
     out = run_whitespace_check(df)
 
