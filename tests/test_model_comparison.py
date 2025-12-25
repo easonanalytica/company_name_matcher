@@ -26,10 +26,10 @@ def rapid_fuzz_matcher():
 
 
 @pytest.fixture
-def default_matcher():
+def default_matcher() -> CompanyNameMatcher:
     """Create a default CompanyNameMatcher."""
 
-    def preprocess_name(name):
+    def preprocess_name(name: str) -> str:
         return re.sub(r"[^a-zA-Z0-9\s]", "", name.lower()).strip()
 
     return CompanyNameMatcher("paraphrase-multilingual-MiniLM-L12-v2", preprocess_fn=preprocess_name)
