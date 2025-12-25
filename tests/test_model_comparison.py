@@ -5,6 +5,9 @@ import re
 from rapidfuzz import fuzz
 from company_name_matcher import CompanyNameMatcher
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from typing import Callable, List
+from numpy.typing import NDArray
+import numpy as np
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -45,7 +48,7 @@ def finetuned_matcher():
     return CompanyNameMatcher("easonanalytica/cnm-multilingual-small-v2", preprocess_fn=preprocess_name)
 
 
-def test_model_comparison(test_data, rapid_fuzz_matcher, default_matcher, finetuned_matcher):
+def test_model_comparison(test_data: pd.DataFrame, rapid_fuzz_matcher: Callable[[str,str], float], default_matcher: CompanyNameMatcher, finetuned_matcher: CompanyNameMatcher) -> None:
     """
     Compare the performance of RapidFuzz, default CompanyNameMatcher,
     and fine-tuned CompanyNameMatcher on test data.
@@ -56,12 +59,12 @@ def test_model_comparison(test_data, rapid_fuzz_matcher, default_matcher, finetu
     finetuned_matcher_threshold = 0.7
 
     # Store predictions and actual values
-    y_true = test_data["Targets"].values
+    y_true: NDArray[np.int64] = test_data["Targets"].to_numpy()
 
     # Get predictions for each model
-    rapid_fuzz_preds = []
-    default_matcher_preds = []
-    finetuned_matcher_preds = []
+    rapid_fuzz_preds: List[float] = []
+    default_matcher_preds: List[float] = []
+    finetuned_matcher_preds: List[float] = []
 
     # Calculate predictions for each pair in the test data
     for _, row in test_data.iterrows():
