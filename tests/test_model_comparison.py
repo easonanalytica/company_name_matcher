@@ -5,6 +5,7 @@ import re
 from rapidfuzz import fuzz
 from company_name_matcher import CompanyNameMatcher
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from typing import Callable
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -16,10 +17,10 @@ def test_data():
 
 
 @pytest.fixture
-def rapid_fuzz_matcher():
+def rapid_fuzz_matcher() -> Callable[[str, str], float]:
     """Create a RapidFuzz matcher function."""
 
-    def matcher(x1, x2):
+    def matcher(x1: str, x2: str) -> float:
         return fuzz.ratio(x1, x2) / 100
 
     return matcher
