@@ -36,10 +36,10 @@ def default_matcher():
 
 
 @pytest.fixture
-def finetuned_matcher():
+def finetuned_matcher() -> CompanyNameMatcher:
     """Create a fine-tuned CompanyNameMatcher."""
 
-    def preprocess_name(name):
+    def preprocess_name(name: str) -> str:
         return "$" + name.strip()  # v2 model pretrained tokens
 
     return CompanyNameMatcher("easonanalytica/cnm-multilingual-small-v2", preprocess_fn=preprocess_name)
