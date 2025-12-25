@@ -1,6 +1,0 @@
-{
-  "source_directories": ["src"],
-  "search_path": ["typings"],   # include local stubs
-  "typeshed": null,             # use default typeshed
-  "taint_models_path": []
-}
