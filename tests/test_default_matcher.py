@@ -29,7 +29,7 @@ def test_basic_company_comparison(default_matcher):
         ), f"Similarity between {company1} and {company2} was {similarity}, expected around {expected_score}"
 
 
-def test_multilingual_support(default_matcher):
+def test_multilingual_support(default_matcher: CompanyNameMatcher):
     test_cases = [
         ("Apple", "苹果公司", 0.30, 0.1),  # English-Chinese
         ("Microsoft", "マイクロソフト", 0.30, 0.1),  # English-Japanese
