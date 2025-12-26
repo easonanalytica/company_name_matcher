@@ -140,7 +140,7 @@ As PoC, we provide a complementary fine-tuned model on [Hugging Face](https://hu
 | Default Matcher    | 0.685   | 0.861    | 0.521 | 0.649   |
 | RapidFuzz         | 0.614   | 1.000    | 0.310 | 0.473   |
 
-**Based on evaluation of hard test data** (`tests/test_data.csv`) containing company name pairs in English, Chinese (中文), Japanese (日本語), Korean (한국어). Decision threshold: 0.7 for all three.
+**Based on evaluation of hard test data** ([`tests/test_data.csv`](tests/test_data.csv)) containing company name pairs in English, Chinese (中文), Japanese (日本語), Korean (한국어). Decision threshold: 0.7 for all three.
 
 *Note: Performance metrics may vary based on your specific use case and data distribution.*
 
@@ -149,8 +149,8 @@ As PoC, we provide a complementary fine-tuned model on [Hugging Face](https://hu
 
 We welcome contributions! Whether you're improving code, adding training data, or reporting issues:
 
-- **Code contributions**: See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines
-- **Bug reports & feature requests**: Open an issue on GitHub
+- **Code contributions**: See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
+- **Bug reports & feature requests**: Open an [issue on GitHub](https://github.com/easonanalytica/company_name_matcher/issues).
 
 ## 📝 License
 
