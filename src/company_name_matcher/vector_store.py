@@ -42,11 +42,50 @@ class VectorStore:
             self.items = items
         else:
             # Normal case - normalize the embeddings
-            self.embeddings = embeddings / np.linalg.norm(embeddings, axis=1)[:, np.newaxis]
+            self.embeddings = self._normalize(embeddings)
             self.items = items
         self.kmeans = None
         self.clusters: Optional[NDArray[np.int64]] = None
 
+    # ----------------- Internal Helpers -----------------
+    def _normalize(self, embeddings: NDArray[np.floating]) -> NDArray[np.floating]:
+        """Normalize embeddings to unit vectors."""
+        return embeddings / np.linalg.norm(embeddings, axis=1)[:, np.newaxis]
+
+    def _get_index_paths(self, base_path: str) -> Tuple[str, str]:
+        """Return file paths for embeddings and KMeans model."""
+        return os.path.join(base_path, "embeddings.h5"), os.path.join(base_path, "kmeans_model.joblib")
+
+    def _save_embeddings(self, path: str) -> None:
+        """Save embeddings and items to HDF5."""
+        with h5py.File(path, "w") as f:
+            f.create_dataset("embeddings", data=self.embeddings, compression="gzip")
+            dt = h5py.special_dtype(vlen=str)
+            items_dataset = f.create_dataset("items", (len(self.items),), dtype=dt)
+            items_dataset[:] = self.items
+
+    def _load_embeddings(self, path: str) -> None:
+        """Load embeddings and items from HDF5."""
+        with h5py.File(path, "r") as f:
+            self.embeddings = f["embeddings"][:]
+            self.items = [item.decode("utf-8") if isinstance(item, bytes) else item for item in f["items"][:]]
+
+    def _update_clusters(self, new_embeddings: Optional[NDArray[np.floating]] = None) -> None:
+        """Update or predict clusters using KMeans."""
+        if self.kmeans is not None:
+            if new_embeddings is not None:
+                new_clusters = self.kmeans.predict(new_embeddings)
+                assert self.clusters is not None
+                self.clusters = np.concatenate([self.clusters.astype(np.int64), new_clusters])
+            else:
+                self.clusters = self.kmeans.fit_predict(self.embeddings)
+
+    @staticmethod
+    def _cosine_similarity(a: NDArray[np.floating], b: NDArray[np.floating]) -> NDArray[np.floating]:
+        """Calculate cosine similarity between normalized vectors."""
+        return np.dot(a, b.T)
+
+    # ----------------- Public Methods -----------------
     def build_index(
         self,
         n_clusters: int = 100,
@@ -78,7 +117,6 @@ class VectorStore:
         >>> store.kmeans.cluster_centers_.shape
         (3, 64)
         """
-        # Handle edge cases with very small datasets
         if len(self.items) <= 1:
             logger.warning("Cannot build KMeans index with 1 or 0 items. Skipping index creation.")
             self.kmeans = None
@@ -90,7 +128,7 @@ class VectorStore:
             logger.info(f"Reduced number of clusters to {n_clusters} based on dataset size")
 
         self.kmeans = KMeans(n_clusters=n_clusters)
-        self.clusters = self.kmeans.fit_predict(self.embeddings)
+        self._update_clusters()
 
         if save_path:
             self.save_index(save_path, overwrite=overwrite)
@@ -120,24 +158,13 @@ class VectorStore:
             raise ValueError("No index to save. Call build_index first.")
 
         os.makedirs(save_path, exist_ok=True)
-
-        # Check if files already exist
-        h5_path = os.path.join(save_path, "embeddings.h5")
-        model_path = os.path.join(save_path, "kmeans_model.joblib")
+        h5_path, model_path = self._get_index_paths(save_path)
 
         if not overwrite and (os.path.exists(h5_path) or os.path.exists(model_path)):
             raise FileExistsError(f"Index files already exist in {save_path}. Set overwrite=True to replace them.")
 
-        # Save embeddings and items using h5py
-        with h5py.File(h5_path, "w") as f:
-            f.create_dataset("embeddings", data=self.embeddings, compression="gzip")
-            dt = h5py.special_dtype(vlen=str)
-            items_dataset = f.create_dataset("items", (len(self.items),), dtype=dt)
-            items_dataset[:] = self.items
-
-        # Save KMeans model and clusters using joblib
+        self._save_embeddings(h5_path)
         dump({"kmeans": self.kmeans, "clusters": self.clusters}, model_path)
-
         logger.info(f"Index saved to {save_path}")
 
     def load_index(self, load_path: str) -> None:
@@ -157,19 +184,11 @@ class VectorStore:
         >>> store.items
         ['Acme Corp', 'Globex', 'Initech', 'Umbrella', 'Hooli']
         """
-        h5_path = os.path.join(load_path, "embeddings.h5")
-        model_path = os.path.join(load_path, "kmeans_model.joblib")
-
+        h5_path, model_path = self._get_index_paths(load_path)
         if not os.path.exists(h5_path) or not os.path.exists(model_path):
             raise FileNotFoundError(f"Index files not found in {load_path}")
 
-        # Load embeddings and items from h5py
-        with h5py.File(h5_path, "r") as f:
-            self.embeddings = f["embeddings"][:]
-            # Decode byte strings to regular strings
-            self.items = [item.decode("utf-8") if isinstance(item, bytes) else item for item in f["items"][:]]
-
-        # Load KMeans model and clusters from joblib
+        self._load_embeddings(h5_path)
         data = load(model_path)
         self.kmeans = data["kmeans"]
         self.clusters = data["clusters"]
@@ -216,52 +235,34 @@ class VectorStore:
         Umbrella 0.7423598126674433
         Initech 0.7023631018378196
         """
-        # Handle empty index case
         if len(self.items) == 0:
             return []
 
-        # Normalize query embedding
-        query_embedding = query_embedding / np.linalg.norm(query_embedding)
+        query_embedding = self._normalize(query_embedding.reshape(1, -1))[0]
 
-        if not use_approx or self.kmeans is None:
-            # Exact search using cosine similarity
-            similarities = self._cosine_similarity(query_embedding.reshape(1, -1), self.embeddings)
-            k = min(k, len(self.items))  # Ensure k is not larger than the number of items
-            indices = np.argsort(similarities.flatten())[-k:][::-1]
-            return [(self.items[i], float(similarities.flatten()[i])) for i in indices]
+        # Determine candidate indices
+        if use_approx and self.kmeans is not None:
+            distances = self.kmeans.transform(query_embedding.reshape(1, -1))[0]
+            closest_clusters = np.argsort(distances)[:n_probe_clusters]
 
-        # Approximate search using k-means
-        # Get distances to all cluster centers
-        distances = self.kmeans.transform(query_embedding.reshape(1, -1))[0]
+            candidate_indices: NDArray[np.int64] = np.concatenate(
+                [np.where(self.clusters == cluster)[0] for cluster in closest_clusters]
+            )
 
-        # Get indices of the n_probe_clusters closest clusters
-        closest_clusters = np.argsort(distances)[:n_probe_clusters]
+            if len(candidate_indices) == 0:
+                logger.warning(
+                    f"No items found in the {n_probe_clusters} closest clusters. Falling back to exact search."
+                )
+                candidate_indices = np.arange(len(self.items))
+        else:
+            candidate_indices = np.arange(len(self.items))
 
-        # Collect all indices from the closest clusters
-        all_indices: NDArray[np.int64] = np.concatenate(
-            [np.where(self.clusters == cluster)[0] for cluster in closest_clusters]
-        )
+        # Compute similarities and return top-k
+        similarities = self._cosine_similarity(query_embedding.reshape(1, -1), self.embeddings[candidate_indices])
+        k = min(k, len(candidate_indices))
+        top_k_indices = np.argsort(similarities.flatten())[-k:][::-1]
 
-        # If no indices found (shouldn't happen but just in case), fall back to exact search
-        if len(all_indices) == 0:
-            logger.warning(f"No items found in the {n_probe_clusters} closest clusters. Falling back to exact search.")
-            return self.search(query_embedding, k, use_approx=False)
-
-        # Calculate similarities only for items in the selected clusters
-        all_indices = np.array(all_indices)
-        cluster_similarities = self._cosine_similarity(query_embedding.reshape(1, -1), self.embeddings[all_indices])
-
-        # Get top k results from the combined clusters
-        k = min(k, len(all_indices))
-        top_k_indices = np.argsort(cluster_similarities.flatten())[-k:][::-1]
-
-        return [(self.items[all_indices[i]], float(cluster_similarities.flatten()[i])) for i in top_k_indices]
-
-    @staticmethod
-    def _cosine_similarity(a: NDArray[np.floating], b: NDArray[np.floating]) -> NDArray[np.floating]:
-        """Calculate cosine similarity between normalized vectors"""
-        # Since vectors are normalized, cosine similarity is just the dot product
-        return np.dot(a, b.T)
+        return [(self.items[candidate_indices[i]], float(similarities.flatten()[i])) for i in top_k_indices]
 
     def add_items(
         self,
@@ -297,20 +298,11 @@ class VectorStore:
         >>> store.items
         ['Acme Corp', 'Globex', 'Initech', 'Umbrella', 'Hooli', 'Stark Industries', 'Wayne Enterprises']
         """
-        # Normalize new embeddings
-        normalized_embeddings = new_embeddings / np.linalg.norm(new_embeddings, axis=1)[:, np.newaxis]
-
-        # Append to existing embeddings and items
+        normalized_embeddings = self._normalize(new_embeddings)
         self.embeddings = np.vstack([self.embeddings, normalized_embeddings])
         self.items.extend(new_items)
 
-        # Update clusters if index exists
-        if self.kmeans is not None:
-            # Predict clusters for new items
-            new_clusters = self.kmeans.predict(normalized_embeddings)
-            assert self.clusters is not None, "clusters should not be None here"
-            self.clusters = np.concatenate([self.clusters.astype(np.int64), new_clusters])
+        self._update_clusters(new_embeddings=normalized_embeddings)
 
-        # Save updated index if save_dir is provided
         if save_dir:
             self.save_index(save_dir, overwrite=overwrite)
