@@ -410,7 +410,7 @@ def test_double_whitespace_detected():
     )
 
 
-def test_newlines_are_detected():
+def test_newlines_are_detected() -> None:
     df = pl.DataFrame({"canonical_name": ["\nApple Inc.\n"]})
     out = run_whitespace_check(df)
 
