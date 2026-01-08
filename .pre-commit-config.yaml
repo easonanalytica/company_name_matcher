@@ -20,3 +20,14 @@ repos:
       - id: bandit
         args: [-c, .bandit]
         exclude: ^tests/
+
+  - repo: local
+    hooks:
+      - id: pytest-validate-data
+        name: Run pytest when validate_data.py changes
+        entry: pytest tests/test_validate_data.py
+        language: python
+        pass_filenames: false
+        files: |
+        ^scripts/validate_data\.py$|
+        ^tests/test_validate_data\.py$
