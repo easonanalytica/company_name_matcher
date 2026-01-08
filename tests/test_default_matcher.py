@@ -2,6 +2,7 @@ import os
 import pytest
 from company_name_matcher import CompanyNameMatcher
 import re
+from pathlib import Path
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -43,7 +44,7 @@ def test_multilingual_support(default_matcher):
         ), f"Similarity between {company1} and {company2} was {similarity}, expected ~{expected_score}"
 
 
-def test_index_operations(default_matcher, tmp_path):
+def test_index_operations(default_matcher: CompanyNameMatcher, tmp_path: Path):
     # Test data
     companies = [
         "Apple Inc",
