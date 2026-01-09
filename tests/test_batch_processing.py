@@ -3,6 +3,7 @@ import pytest
 from company_name_matcher import CompanyNameMatcher
 import time
 import re
+from typing import List
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -16,7 +17,7 @@ def default_matcher():
 
 
 @pytest.fixture
-def test_companies():
+def test_companies() -> List[str]:
     return [
         "Apple Inc",
         "Microsoft Corporation",
