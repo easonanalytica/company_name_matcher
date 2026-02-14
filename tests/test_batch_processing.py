@@ -3,6 +3,8 @@ import pytest
 from company_name_matcher import CompanyNameMatcher
 import time
 import re
+from typing import List
+from pathlib import Path
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -31,7 +33,7 @@ def test_companies():
     ]
 
 
-def test_find_matches_single_company(default_matcher, test_companies, tmp_path):
+def test_find_matches_single_company(default_matcher: CompanyNameMatcher, test_companies: List[str], tmp_path: Path):
     # Build index
     index_dir = tmp_path / "test_batch_index"
     default_matcher.build_index(test_companies, n_clusters=2, save_dir=str(index_dir))
