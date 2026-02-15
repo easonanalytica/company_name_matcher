@@ -14,7 +14,7 @@ def default_matcher():
     return CompanyNameMatcher("paraphrase-multilingual-MiniLM-L12-v2", preprocess_fn=preprocess_name)
 
 
-def test_basic_company_comparison(default_matcher):
+def test_basic_company_comparison(default_matcher: CompanyNameMatcher):
     test_cases = [
         ("Apple", "Microsoft Corporation", 0.34, 0.2),  # Expected low similarity
         ("Apple", "Apple Inc", 0.90, 0.2),  # Expected high similarity
