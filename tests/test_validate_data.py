@@ -434,7 +434,7 @@ def test_no_whitespace_errors():
     assert out["DoubleWhiteSpaceError: canonical_name"][0] is None
 
 
-def test_non_utf8_column_is_ignored():
+def test_non_utf8_column_is_ignored() -> None:
     df = pl.DataFrame({"index": [1]})  # Int64 → should not create any error columns
     out = run_whitespace_check(df)
 
